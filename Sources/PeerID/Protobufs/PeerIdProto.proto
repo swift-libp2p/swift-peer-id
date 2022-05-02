@@ -1,0 +1,15 @@
+//
+//  PeerIdProto.swift
+//  
+//
+//  Created by Brandon Toms on 5/1/22.
+//
+//  https://github.com/libp2p/js-peer-id/blob/master/src/proto.js
+
+syntax = "proto2";
+
+message PeerIdProto {
+   required bytes id = 1;
+   optional bytes pubKey = 2;
+   optional bytes privKey = 3;
+}
