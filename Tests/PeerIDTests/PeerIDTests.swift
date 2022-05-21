@@ -26,10 +26,6 @@ final class PeerIDTests: XCTestCase {
     static let testIdCIDString = try! testIdCID.toBaseEncodedString(.base32)
 
     /// Generate a new PeerID with default params (RSA 2048)
-    ///
-    /// libp2p-js/peerID equivalent
-    /// ```
-    /// ```
     func testGeneratePeerID_Default_Params() throws {
         let peerID = try PeerID()
         print(peerID.debugDescription)
@@ -42,10 +38,6 @@ final class PeerIDTests: XCTestCase {
     }
     
     /// Creates a new PeerID with an underlying RSA 1024 bit key pair
-    ///
-    /// libp2p-js/peerID equivalent
-    /// ```
-    /// ```
     func testGeneratePeerID_RSA_1024() throws {
         let peerID = try PeerID(.RSA(bits: .B1024))
         print(peerID.debugDescription)
@@ -57,11 +49,7 @@ final class PeerIDTests: XCTestCase {
         XCTAssertEqual(peerID.keyPair?.attributes()?.size, 1024)
     }
     
-    /// Creates a new PeerID with an underlying RSA 1024 bit key pair
-    ///
-    /// libp2p-js/peerID equivalent
-    /// ```
-    /// ```
+    /// Creates a new PeerID with an underlying RSA 2048 bit key pair
     func testGeneratePeerID_RSA_2048() throws {
         let peerID = try PeerID(.RSA(bits: .B2048))
         print(peerID.debugDescription)
@@ -73,11 +61,7 @@ final class PeerIDTests: XCTestCase {
         XCTAssertEqual(peerID.keyPair?.attributes()?.size, 2048)
     }
     
-    /// Creates a new PeerID with an underlying RSA 1024 bit key pair
-    ///
-    /// libp2p-js/peerID equivalent
-    /// ```
-    /// ```
+    /// Creates a new PeerID with an underlying RSA 3072 bit key pair
     func testGeneratePeerID_RSA_3072() throws {
         let peerID = try PeerID(.RSA(bits: .B3072))
         print(peerID.debugDescription)
@@ -89,6 +73,7 @@ final class PeerIDTests: XCTestCase {
         XCTAssertEqual(peerID.keyPair?.attributes()?.size, 3072)
     }
     
+    /// Creates a new PeerID with an underlying RSA 4096 bit key pair
     func testGeneratePeerID_RSA_4096() throws {
         let peerID = try PeerID(.RSA(bits: .B4096))
         print(peerID.debugDescription)
@@ -99,7 +84,6 @@ final class PeerIDTests: XCTestCase {
         XCTAssertNotNil(peerID.keyPair?.publicKey)
         XCTAssertEqual(peerID.keyPair?.attributes()?.size, 4096)
     }
-    
     
     /// Creates a new PeerID with an underlying Secp256k1 key pair
     ///
@@ -125,10 +109,6 @@ final class PeerIDTests: XCTestCase {
     }
     
     /// Creates a new PeerID with an underlying Ed25519 key pair
-    ///
-    /// libp2p-js/peerID equivalent
-    /// ```
-    /// ```
     func testGenerate_Ed25519_PeerID() throws {
         let peerID = try PeerID(.Ed25519)
         print(peerID.debugDescription)
@@ -160,8 +140,28 @@ final class PeerIDTests: XCTestCase {
         XCTAssertNil(peerID.keyPair)
     }
     
-    func testCIDRoundTrip() throws {
+    func testCIDRoundTripRSA() throws {
         let peerID = try PeerID(.RSA(bits: .B1024))
+        
+        let cid = peerID.cidString
+        
+        let peerID2 = try PeerID(cid: cid)
+        
+        XCTAssertEqual(peerID.bytes, peerID2.bytes)
+    }
+    
+    func testCIDRoundTripEd25519() throws {
+        let peerID = try PeerID(.Ed25519)
+        
+        let cid = peerID.cidString
+        
+        let peerID2 = try PeerID(cid: cid)
+        
+        XCTAssertEqual(peerID.bytes, peerID2.bytes)
+    }
+    
+    func testCIDRoundTripSecp256k1() throws {
+        let peerID = try PeerID(.Secp256k1)
         
         let cid = peerID.cidString
         
@@ -373,6 +373,25 @@ final class PeerIDTests: XCTestCase {
     }
     
     static var allTests = [
-        ("testGeneratePeerID", testGeneratePeerID_Default_Params),
+        ("testGeneratePeerID_Default_Params", testGeneratePeerID_Default_Params),
+        ("testGeneratePeerID_RSA_1024", testGeneratePeerID_RSA_1024),
+        ("testGeneratePeerID_RSA_2048", testGeneratePeerID_RSA_2048),
+        ("testGeneratePeerID_RSA_3072", testGeneratePeerID_RSA_3072),
+        ("testGeneratePeerID_RSA_4096", testGeneratePeerID_RSA_4096),
+        ("testGenerate_Secp256k1_PeerID", testGenerate_Secp256k1_PeerID),
+        ("testGenerate_Ed25519_PeerID", testGenerate_Ed25519_PeerID),
+        ("testFromHexString", testFromHexString),
+        ("testFromBytes", testFromBytes),
+        ("testCIDRoundTripRSA", testCIDRoundTripRSA),
+        ("testCIDRoundTripEd25519", testCIDRoundTripEd25519),
+        ("testCIDRoundTripSecp256k1", testCIDRoundTripSecp256k1),
+        ("testHexDecoding", testHexDecoding),
+        ("testEmbeddedEd25519PublicKeys", testEmbeddedEd25519PublicKeys),
+        ("testFromMarshaledStringSample", testFromMarshaledStringSample),
+        ("testFromMarshaledPublicKey", testFromMarshaledPublicKey),
+        ("testFromMarshaledPrivateKey", testFromMarshaledPrivateKey),
+        ("testFromMarshaledPrivateKey_GO", testFromMarshaledPrivateKey_GO),
+        ("testFromMarshaledPrivateKey_GO_2", testFromMarshaledPrivateKey_GO_2),
+        ("testToJSON", testToJSON)
     ]
 }
