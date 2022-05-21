@@ -5,6 +5,10 @@ import Multibase
 import LibP2PCrypto
 @testable import PeerID
 
+/// - Note: Linux Users
+/// Make sure to compile the package for release before running these tests.
+/// ```swift test -c release -Xswiftc -enable-testing```
+/// Otherwise the RSA key generation can take an extremely long time...
 final class PeerIDTests: XCTestCase {
     
     struct goPeerID {
@@ -212,9 +216,9 @@ final class PeerIDTests: XCTestCase {
             XCTAssertNil(peerID.keyPair)
         }
         
-        let rsa = try PeerID(.RSA(bits: .B2048))
+        let rsa = try PeerID(.RSA(bits: .B1024))
         let rsaID = rsa.id
-        
+
         let recoveredPeerID = try PeerID(fromBytesID: rsaID)
         XCTAssertEqual(recoveredPeerID.b58String, rsa.b58String)
         XCTAssertEqual(recoveredPeerID.type, .idOnly)
@@ -375,9 +379,9 @@ final class PeerIDTests: XCTestCase {
     static var allTests = [
         ("testGeneratePeerID_Default_Params", testGeneratePeerID_Default_Params),
         ("testGeneratePeerID_RSA_1024", testGeneratePeerID_RSA_1024),
-        ("testGeneratePeerID_RSA_2048", testGeneratePeerID_RSA_2048),
-        ("testGeneratePeerID_RSA_3072", testGeneratePeerID_RSA_3072),
-        ("testGeneratePeerID_RSA_4096", testGeneratePeerID_RSA_4096),
+        //("testGeneratePeerID_RSA_2048", testGeneratePeerID_RSA_2048),
+        //("testGeneratePeerID_RSA_3072", testGeneratePeerID_RSA_3072),
+        //("testGeneratePeerID_RSA_4096", testGeneratePeerID_RSA_4096),
         ("testGenerate_Secp256k1_PeerID", testGenerate_Secp256k1_PeerID),
         ("testGenerate_Ed25519_PeerID", testGenerate_Ed25519_PeerID),
         ("testFromHexString", testFromHexString),
