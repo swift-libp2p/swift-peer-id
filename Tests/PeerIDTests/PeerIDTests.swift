@@ -65,6 +65,7 @@ final class PeerIDTests: XCTestCase {
         XCTAssertEqual(peerID.keyPair?.attributes()?.size, 2048)
     }
     
+    #if canImport(Security)
     /// Creates a new PeerID with an underlying RSA 3072 bit key pair
     func testGeneratePeerID_RSA_3072() throws {
         let peerID = try PeerID(.RSA(bits: .B3072))
@@ -88,6 +89,7 @@ final class PeerIDTests: XCTestCase {
         XCTAssertNotNil(peerID.keyPair?.publicKey)
         XCTAssertEqual(peerID.keyPair?.attributes()?.size, 4096)
     }
+    #endif
     
     /// Creates a new PeerID with an underlying Secp256k1 key pair
     ///
@@ -183,7 +185,6 @@ final class PeerIDTests: XCTestCase {
     }
     
     func testEmbeddedEd25519PublicKeys() throws {
-        
         /// [Embedded:Traditional]
         let ed25519EmbeddedB58IDs = [
             "12D3KooWAfPDpPRRRBrmqy9is2zjU5srQ4hKuZitiGmh4NTTpS2d": "QmPoHmYtUt8BU9eiwMYdBfT6rooBnna5fdAZHUaZASGQY8",
@@ -244,7 +245,6 @@ final class PeerIDTests: XCTestCase {
     }
     
     func testFromMarshaledPublicKey() throws {
-        
         let marshaledPeerIDData = Data(hex: PeerIDTests.samplePeerID.marshaled) //try Multihash(hexString: "f\(PeerIDTests.samplePeerID.marshaled)").value
         let protoPeerID = try PeerIdProto(contiguousBytes: marshaledPeerIDData)
         
@@ -316,6 +316,8 @@ final class PeerIDTests: XCTestCase {
         XCTAssertEqual(pid, PeerIDTests.goPeerID.id)
     }
     
+    /// Marshaling Private RSA Keys aren't supported yet on Linux
+    #if canImport(Security)
     func testFromMarshaledPrivateKey_GO_2() throws {
         
         let peerID = try PeerID(marshaledPrivateKey: PeerIDTests.goPeerID.privKey, base: .base64Pad)
@@ -330,10 +332,33 @@ final class PeerIDTests: XCTestCase {
         
         XCTAssertEqual(marshaledPrivKey.asString(base: .base64Pad), PeerIDTests.goPeerID.privKey)
     }
+    #endif
     
     /// 3.052, 3.096 (using multibase library)
     /// 0.135, 0.134 (using Data(hex: ))
-    func testToJSON() throws {
+    func testToJSONPublic() throws {
+        //let peerID = try PeerID(marshaledPeerID: PeerIDTests.samplePeerID.marshaled, base: .base16)
+        let peerID = try PeerID(marshaledPeerID: Data(hex: PeerIDTests.samplePeerID.marshaled))
+        
+        let publicJSON = try peerID.toJSON(includingPrivateKey: false)
+        
+        //print("Full JSON")
+        //print(String(data: fullJSON, encoding: .utf8))
+        //print()
+        //print("Public JSON")
+        //print(String(data: publicJSON, encoding: .utf8))
+        
+        let pubID = try PeerID(fromJSON: publicJSON)
+        // Ensure the ID matches the test fixture
+        XCTAssertEqual(pubID.hexString, PeerIDTests.samplePeerID.id)
+        // Ensure our Public Key was instantiated
+        XCTAssertNotNil(pubID.keyPair?.publicKey)
+        // Ensure that the Private Key did not get exported
+        XCTAssertNil(pubID.keyPair?.privateKey)
+    }
+    
+    #if canImport(Security)
+    func testToJSONFull() throws {
         //let peerID = try PeerID(marshaledPeerID: PeerIDTests.samplePeerID.marshaled, base: .base16)
         let peerID = try PeerID(marshaledPeerID: Data(hex: PeerIDTests.samplePeerID.marshaled))
         
@@ -375,6 +400,7 @@ final class PeerIDTests: XCTestCase {
         XCTAssertEqual(pubID.keyPair?.publicKey.asString(base: .base64), fullID.keyPair?.publicKey.asString(base: .base64))
         XCTAssertNotEqual(pubID.keyPair?.privateKey?.asString(base: .base64), fullID.keyPair?.privateKey?.asString(base: .base64))
     }
+    #endif
     
     static var allTests = [
         ("testGeneratePeerID_Default_Params", testGeneratePeerID_Default_Params),
@@ -395,7 +421,8 @@ final class PeerIDTests: XCTestCase {
         ("testFromMarshaledPublicKey", testFromMarshaledPublicKey),
         ("testFromMarshaledPrivateKey", testFromMarshaledPrivateKey),
         ("testFromMarshaledPrivateKey_GO", testFromMarshaledPrivateKey_GO),
-        ("testFromMarshaledPrivateKey_GO_2", testFromMarshaledPrivateKey_GO_2),
-        ("testToJSON", testToJSON)
+        //("testFromMarshaledPrivateKey_GO_2", testFromMarshaledPrivateKey_GO_2),
+        ("testToJSONPublic", testToJSONPublic),
+        //("testToJSONFull", testToJSONFull)
     ]
 }
