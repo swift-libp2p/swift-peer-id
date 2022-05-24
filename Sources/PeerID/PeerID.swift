@@ -308,7 +308,7 @@ public class PeerID {
             throw NSError(domain: "A public key is required for verifying signatures and this PeerID doesn't contain a public key.", code: 0, userInfo: nil)
         }
         
-        return try pub.verfiy(signature, for: expectedData)
+        return try pub.verify(signature: signature, for: expectedData)
     }
 }
 
