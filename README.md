@@ -67,6 +67,13 @@ peerID.keyPair?.keyType == .ed25519     // The type of Key
 peerID.keyPair?.privateKey              // Access to the private key (for signing)
 peerID.keyPair?.publicKey               // Access to the public key (for verifying signatures)
 
+/// If you want to reuse the same PeerID between sessions, you can... 
+        
+/// Export a PeerID as an Encrypted PEM String that you can store... 
+let encryptedPEM = try peerID.exportKeyPair(as: .privatePEMString(encryptedWithPassword: "mypassword"))
+
+/// And then load the PeerID from and encrypted PEM String later
+let peerID = try PeerID(pem: "ENCRYPTED_PEM_String", password: "mypassword")
 ```
 
 ### API
@@ -108,6 +115,8 @@ PeerID.init(marshaledPrivateKey str:String, base:BaseEncoding) throws
 /// Inits a `PeerID` from a marshaled private key
 PeerID.init(marshaledPrivateKey data:Data) throws
 
+/// Inits a `PeerID` from a PEM String
+PeerID.init(pem: String, withPassword: String? = nil) throws
 
 /// Properties
 /// Returns the PeerID's id as a base58 string (multihash/CIDv0).
@@ -136,6 +145,8 @@ PeerID.toJSON(includingPrivateKey:Bool = false) throws -> Data
 /// Exports our PeerID as a JSON string
 PeerID.toJSONString(includingPrivateKey:Bool = false) throws -> String?
 
+/// Exports our PeerID as a PEM String
+PeerID.exportKeyPair(as: PeerID.ExportType) throws -> String
 
 /// Signing and Verifying
 // Signs data using this PeerID's private key. This signature can then be verified by a remote peer using this PeerID's public key
