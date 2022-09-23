@@ -274,7 +274,6 @@ final class PeerIDTests: XCTestCase {
     }
     
     func testFromMarshaledPrivateKey() throws {
-        
         let marshaledPeerIDData = Data(hex: PeerIDTests.samplePeerID.marshaled) //try Multihash(hexString: "f\(PeerIDTests.samplePeerID.marshaled)").value
         let protoPeerID = try PeerIdProto(contiguousBytes: marshaledPeerIDData)
         
@@ -304,7 +303,6 @@ final class PeerIDTests: XCTestCase {
     /// Imports a SecKey from the raw data
     /// Extracts/derives a Public Key from the Private Key
     func testFromMarshaledPrivateKey_GO() throws {
-        
         let marshaledPrivateKey = try BaseEncoding.decode(PeerIDTests.goPeerID.privKey, as: .base64Pad)
 
         let peerID = try PeerID(marshaledPrivateKey: marshaledPrivateKey.data)
@@ -316,10 +314,8 @@ final class PeerIDTests: XCTestCase {
         XCTAssertEqual(pid, PeerIDTests.goPeerID.id)
     }
     
-    /// Marshaling Private RSA Keys aren't supported yet on Linux
-    #if canImport(Security)
+    /// Marshaling Private RSA Keys
     func testFromMarshaledPrivateKey_GO_2() throws {
-        
         let peerID = try PeerID(marshaledPrivateKey: PeerIDTests.goPeerID.privKey, base: .base64Pad)
         
         XCTAssertEqual(peerID.b58String, PeerIDTests.goPeerID.id)
@@ -332,13 +328,9 @@ final class PeerIDTests: XCTestCase {
         
         XCTAssertEqual(marshaledPrivKey.asString(base: .base64Pad), PeerIDTests.goPeerID.privKey)
     }
-    #endif
     
-    /// 3.052, 3.096 (using multibase library)
-    /// 0.135, 0.134 (using Data(hex: ))
     func testToJSONPublic() throws {
-        //let peerID = try PeerID(marshaledPeerID: PeerIDTests.samplePeerID.marshaled, base: .base16)
-        let peerID = try PeerID(marshaledPeerID: Data(hex: PeerIDTests.samplePeerID.marshaled))
+        let peerID = try PeerID(marshaledPeerID: PeerIDTests.samplePeerID.marshaled, base: .base16)
         
         let publicJSON = try peerID.toJSON(includingPrivateKey: false)
         
@@ -357,10 +349,8 @@ final class PeerIDTests: XCTestCase {
         XCTAssertNil(pubID.keyPair?.privateKey)
     }
     
-    #if canImport(Security)
     func testToJSONFull() throws {
-        //let peerID = try PeerID(marshaledPeerID: PeerIDTests.samplePeerID.marshaled, base: .base16)
-        let peerID = try PeerID(marshaledPeerID: Data(hex: PeerIDTests.samplePeerID.marshaled))
+        let peerID = try PeerID(marshaledPeerID: PeerIDTests.samplePeerID.marshaled, base: .base16)
         
         let fullJSON = try peerID.toJSON(includingPrivateKey: true)
         let publicJSON = try peerID.toJSON(includingPrivateKey: false)
@@ -400,12 +390,104 @@ final class PeerIDTests: XCTestCase {
         XCTAssertEqual(pubID.keyPair?.publicKey.asString(base: .base64), fullID.keyPair?.publicKey.asString(base: .base64))
         XCTAssertNotEqual(pubID.keyPair?.privateKey?.asString(base: .base64), fullID.keyPair?.privateKey?.asString(base: .base64))
     }
-    #endif
+
+    func testImportExportEncryptedPEM() throws {
+        /// The encrypted version of an RSA 1024 Private Key
+        ///
+        /// Encrypted with
+        /// ```
+        /// openssl pkcs8
+        ///     -in foo.pem
+        ///     -topk8
+        ///     -v2 aes-128-cbc
+        ///     -passout pass:mypassword
+        /// ```
+        let ENCRYPTED = """
+        -----BEGIN ENCRYPTED PRIVATE KEY-----
+        MIICzzBJBgkqhkiG9w0BBQ0wPDAbBgkqhkiG9w0BBQwwDgQI49PtP+7yJmgCAggA
+        MB0GCWCGSAFlAwQBAgQQYz/oWtq4qhWPNrAQiO3i5wSCAoCjWvOSqAMdA4qDF8BB
+        aaqGRnZ/Lvewsrs4keppFogFnYpeVkzEmeleQLIYkO2mnNvsjhfh2Vk1LW/qNPIl
+        NvwjXyNbP1E6TlLmTNEAgIfyViHOCuk+17tkgAtK98huFTi0U+LbMcaxSnJ7CsNY
+        9JODko7fLXMpEaGy5qcuXWsMHG1iKcggYs0J1kmWSVw9ZQP7Uh9hs31zz60kFe+T
+        1I8EOjC06EcKY2HmOhzS+p378nWD3Lxi49FWkHslx1OtQwAXqMG5xWSo+kTWgmUx
+        fB3Olmv7opDcQ5OtOSxRjM/6SCtrtIlPRjIS7Uu4foW2BpFS+mkkvaJR0lMiEFjA
+        qMdLu3MZzT8U9lEDpd+ki+OjIC2bOXkv/OgHFmHjrTrGTVnK+HP5B0XkcaN0kmi5
+        ypd8/XB4zDqO/eSSTKnDe5cvw9Ruj5vt9cesUGjckTlVlZ7Sip2nqtngEAh0k7gc
+        p8p0LpNRyOM5edxNCsRLWj3Z9oskkbEFbL3INuVr6HZ5C1IpUHaxzdii1FBeLSqY
+        RYCC7iOgfqRILkBN2dsnWhdLLvcVpeQqSccnNCYSrXgr40T8BqZKLnuhHT7/iZaw
+        OiKp9MyygPf0wO5IFaSglpk02dohJpg/LYxFBZk+qJKPR9883NrtSPSzXxDogu2f
+        /tc8OCoH919cB8WAsU1cvKYMxsr9HTfoxS7itrJX9d7tE3J2Ky7fQrPWt247BXSE
+        FMUJ8BQpLL/2lNIxW9clLEuzr0RZKu3AhBU0V0o8KDucrsLPdbLvV9/J8+G8VJWB
+        DZjkXrHO2Oob0rOBtz0gnIF4TSwMWlI28OFWLwN3ByGeT0KcDN7SghLtDSyEQKNW
+        ZHiA
+        -----END ENCRYPTED PRIVATE KEY-----
+        """
+        
+        let peerID = try PeerID(pem: ENCRYPTED, password: "mypassword")
+        XCTAssertNotNil(peerID.keyPair)
+        XCTAssertNotNil(peerID.keyPair?.publicKey)
+        XCTAssertNotNil(peerID.keyPair?.privateKey)
+        XCTAssertEqual(peerID.type, .isPrivate)
+        XCTAssertEqual(peerID.keyPair?.keyType, .rsa)
+        
+        /// Every time we export the encrypted PEM it should be unique (unless you manually set the IV using swift-libp2p-crypto)
+        let export1 = try peerID.exportKeyPair(as: .privatePEMString(encryptedWithPassword: "mypassword"))
+        let export2 = try peerID.exportKeyPair(as: .privatePEMString(encryptedWithPassword: "mypassword"))
+        
+        XCTAssertNotEqual(export1, ENCRYPTED)
+        XCTAssertNotEqual(export2, ENCRYPTED)
+        XCTAssertNotEqual(export1, export2)
+        XCTAssertEqual(export1.count, export2.count)
+        XCTAssertEqual(export1.count, ENCRYPTED.count)
+        
+        /// Ensure the wrong passwords throw errors
+        XCTAssertThrowsError(try PeerID(pem: ENCRYPTED, password: ""))
+        XCTAssertThrowsError(try PeerID(pem: ENCRYPTED, password: "MyPassword"))
+        XCTAssertThrowsError(try PeerID(pem: ENCRYPTED, password: nil))
+    }
+    
+    func testImportExportED25519PeerID() throws {
+        let peerID = try PeerID(.Ed25519)
+        let export = try peerID.exportKeyPair(as: .privatePEMString(encryptedWithPassword: "mypassword"))
+        
+        print(export)
+        
+        let imported = try PeerID(pem: export, password: "mypassword")
+        
+        XCTAssertNotNil(imported.keyPair)
+        XCTAssertNotNil(imported.keyPair?.privateKey)
+        XCTAssertEqual(imported.keyPair?.privateKey?.rawRepresentation, peerID.keyPair?.privateKey?.rawRepresentation)
+        XCTAssertEqual(imported, peerID)
+        
+        /// Ensure the wrong passwords throw errors
+        XCTAssertThrowsError(try PeerID(pem: export, password: ""))
+        XCTAssertThrowsError(try PeerID(pem: export, password: "MyPassword"))
+        XCTAssertThrowsError(try PeerID(pem: export, password: nil))
+    }
+    
+    func testImportExportSecp256k1PeerID() throws {
+        let peerID = try PeerID(.Secp256k1)
+        let export = try peerID.exportKeyPair(as: .privatePEMString(encryptedWithPassword: "mypassword"))
+        
+        print(export)
+        
+        let imported = try PeerID(pem: export, password: "mypassword")
+        
+        XCTAssertNotNil(imported.keyPair)
+        XCTAssertNotNil(imported.keyPair?.privateKey)
+        XCTAssertEqual(imported.keyPair?.privateKey?.rawRepresentation, peerID.keyPair?.privateKey?.rawRepresentation)
+        XCTAssertEqual(imported, peerID)
+        
+        /// Ensure the wrong passwords throw errors
+        XCTAssertThrowsError(try PeerID(pem: export, password: ""))
+        XCTAssertThrowsError(try PeerID(pem: export, password: "MyPassword"))
+        XCTAssertThrowsError(try PeerID(pem: export, password: nil))
+    }
     
     static var allTests = [
         ("testGeneratePeerID_Default_Params", testGeneratePeerID_Default_Params),
         ("testGeneratePeerID_RSA_1024", testGeneratePeerID_RSA_1024),
-        //("testGeneratePeerID_RSA_2048", testGeneratePeerID_RSA_2048),
+        ("testGeneratePeerID_RSA_2048", testGeneratePeerID_RSA_2048),
         //("testGeneratePeerID_RSA_3072", testGeneratePeerID_RSA_3072),
         //("testGeneratePeerID_RSA_4096", testGeneratePeerID_RSA_4096),
         ("testGenerate_Secp256k1_PeerID", testGenerate_Secp256k1_PeerID),
@@ -421,8 +503,11 @@ final class PeerIDTests: XCTestCase {
         ("testFromMarshaledPublicKey", testFromMarshaledPublicKey),
         ("testFromMarshaledPrivateKey", testFromMarshaledPrivateKey),
         ("testFromMarshaledPrivateKey_GO", testFromMarshaledPrivateKey_GO),
-        //("testFromMarshaledPrivateKey_GO_2", testFromMarshaledPrivateKey_GO_2),
+        ("testFromMarshaledPrivateKey_GO_2", testFromMarshaledPrivateKey_GO_2),
         ("testToJSONPublic", testToJSONPublic),
-        //("testToJSONFull", testToJSONFull)
+        ("testToJSONFull", testToJSONFull),
+        ("testImportExportEncryptedPEM", testImportExportEncryptedPEM),
+        ("testImportExportED25519PeerID", testImportExportED25519PeerID),
+        ("testImportExportSecp256k1PeerID", testImportExportSecp256k1PeerID),
     ]
 }
