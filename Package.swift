@@ -20,7 +20,7 @@ let package = Package(
         .package(url: "https://github.com/swift-libp2p/swift-libp2p-crypto.git", .upToNextMinor(from: "0.1.1")),
         .package(url: "https://github.com/swift-libp2p/swift-multihash.git", .upToNextMajor(from: "0.0.1")),
         .package(url: "https://github.com/swift-libp2p/swift-cid.git", .upToNextMajor(from: "0.0.1")),
-        .package(url: "https://github.com/apple/swift-protobuf.git", .upToNextMajor(from: "1.12.0"))
+        .package(name: "SwiftProtobuf", url: "https://github.com/apple/swift-protobuf.git", .upToNextMajor(from: "1.12.0"))
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -31,7 +31,7 @@ let package = Package(
                 .product(name: "LibP2PCrypto", package: "swift-libp2p-crypto"),
                 .product(name: "Multihash", package: "swift-multihash"),
                 .product(name: "CID", package: "swift-cid"),
-                .product(name: "SwiftProtobuf", package: "swift-protobuf"),
+                .product(name: "SwiftProtobuf", package: "SwiftProtobuf"),
             ],
             resources: [
               .copy("Protobufs/PeerIdProto.proto")
