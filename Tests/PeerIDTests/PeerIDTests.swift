@@ -483,31 +483,4 @@ final class PeerIDTests: XCTestCase {
         XCTAssertThrowsError(try PeerID(pem: export, password: "MyPassword"))
         XCTAssertThrowsError(try PeerID(pem: export, password: nil))
     }
-    
-    static var allTests = [
-        ("testGeneratePeerID_Default_Params", testGeneratePeerID_Default_Params),
-        ("testGeneratePeerID_RSA_1024", testGeneratePeerID_RSA_1024),
-        ("testGeneratePeerID_RSA_2048", testGeneratePeerID_RSA_2048),
-        //("testGeneratePeerID_RSA_3072", testGeneratePeerID_RSA_3072),
-        //("testGeneratePeerID_RSA_4096", testGeneratePeerID_RSA_4096),
-        ("testGenerate_Secp256k1_PeerID", testGenerate_Secp256k1_PeerID),
-        ("testGenerate_Ed25519_PeerID", testGenerate_Ed25519_PeerID),
-        ("testFromHexString", testFromHexString),
-        ("testFromBytes", testFromBytes),
-        ("testCIDRoundTripRSA", testCIDRoundTripRSA),
-        ("testCIDRoundTripEd25519", testCIDRoundTripEd25519),
-        ("testCIDRoundTripSecp256k1", testCIDRoundTripSecp256k1),
-        ("testHexDecoding", testHexDecoding),
-        ("testEmbeddedEd25519PublicKeys", testEmbeddedEd25519PublicKeys),
-        ("testFromMarshaledStringSample", testFromMarshaledStringSample),
-        ("testFromMarshaledPublicKey", testFromMarshaledPublicKey),
-        ("testFromMarshaledPrivateKey", testFromMarshaledPrivateKey),
-        ("testFromMarshaledPrivateKey_GO", testFromMarshaledPrivateKey_GO),
-        ("testFromMarshaledPrivateKey_GO_2", testFromMarshaledPrivateKey_GO_2),
-        ("testToJSONPublic", testToJSONPublic),
-        ("testToJSONFull", testToJSONFull),
-        ("testImportExportEncryptedPEM", testImportExportEncryptedPEM),
-        ("testImportExportED25519PeerID", testImportExportED25519PeerID),
-        ("testImportExportSecp256k1PeerID", testImportExportSecp256k1PeerID),
-    ]
 }
