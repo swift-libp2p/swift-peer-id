@@ -263,7 +263,8 @@ final class PeerIDTests: XCTestCase {
     }
 
     func testFromMarshaledPublicKey() throws {
-        let marshaledPeerIDData = Data(hex: PeerIDTests.samplePeerID.marshaled)  //try Multihash(hexString: "f\(PeerIDTests.samplePeerID.marshaled)").value
+        //try Multihash(hexString: "f\(PeerIDTests.samplePeerID.marshaled)").value
+        let marshaledPeerIDData = Data(hex: PeerIDTests.samplePeerID.marshaled)
         let protoPeerID = try PeerIdProto(contiguousBytes: marshaledPeerIDData)
 
         print("ID: \(protoPeerID.id.asString(base: .base16))")
@@ -292,7 +293,8 @@ final class PeerIDTests: XCTestCase {
     }
 
     func testFromMarshaledPrivateKey() throws {
-        let marshaledPeerIDData = Data(hex: PeerIDTests.samplePeerID.marshaled)  //try Multihash(hexString: "f\(PeerIDTests.samplePeerID.marshaled)").value
+        //try Multihash(hexString: "f\(PeerIDTests.samplePeerID.marshaled)").value
+        let marshaledPeerIDData = Data(hex: PeerIDTests.samplePeerID.marshaled)
         let protoPeerID = try PeerIdProto(contiguousBytes: marshaledPeerIDData)
 
         XCTAssertEqual(protoPeerID.id.asString(base: .base16), PeerIDTests.samplePeerID.id)
