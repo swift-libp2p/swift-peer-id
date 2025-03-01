@@ -1,26 +1,33 @@
+//===----------------------------------------------------------------------===//
 //
-//  PeerID+JSON.swift
-//  
+// This source file is part of the swift-libp2p open source project
 //
-//  Created by Brandon Toms on 9/23/22.
+// Copyright (c) 2022-2025 swift-libp2p project authors
+// Licensed under MIT
 //
+// See LICENSE for license information
+// See CONTRIBUTORS for the list of swift-libp2p project authors
+//
+// SPDX-License-Identifier: MIT
+//
+//===----------------------------------------------------------------------===//
 
-import LibP2PCrypto
 import Foundation
+import LibP2PCrypto
 import Multihash
 
 /// - MARK: JSON Imports and Exports
-public extension PeerID {
+extension PeerID {
     /// An Internal PeerID struct to facilitate JSON Encoding and Decoding
-    internal struct PeerIDJSON:Codable {
+    internal struct PeerIDJSON: Codable {
         /// base58 encoded string
-        let id:String
+        let id: String
         /// base64 encoded publicKey protobuf
-        let pubKey:String?
+        let pubKey: String?
         /// base64 encoded privateKey protobuf
-        let privKey:String?
+        let privKey: String?
     }
-    
+
     /// Initialize a PeerID from JSON data
     ///
     /// Expects a JSON object of the form
@@ -31,9 +38,9 @@ public extension PeerID {
     ///   obj.privKey: String? - The private key in protobuf format, encoded in 'base64'
     /// }
     /// ```
-    convenience init(fromJSON json:Data) throws {
+    public convenience init(fromJSON json: Data) throws {
         let data = try JSONDecoder().decode(PeerIDJSON.self, from: json)
-        
+
         if data.privKey == nil && data.pubKey == nil {
             /// Only ID Present...
             try self.init(fromBytesID: Multihash(b58String: data.id).value)
@@ -49,7 +56,7 @@ public extension PeerID {
             throw NSError(domain: "Failed to init PeerID from json", code: 0, userInfo: nil)
         }
     }
-    
+
     /// Exports our PeerID as a JSON object
     ///
     /// Returns a JSON object of the form
@@ -60,16 +67,16 @@ public extension PeerID {
     ///   privKey: String? - The private key in protobuf format, encoded in 'base64'
     /// }
     /// ```
-    func toJSON(includingPrivateKey:Bool = false) throws -> Data {
+    public func toJSON(includingPrivateKey: Bool = false) throws -> Data {
         let pidJSON = PeerIDJSON(
             id: self.b58String,
             pubKey: try? self.keyPair?.publicKey.marshal().asString(base: .base64),
             privKey: includingPrivateKey ? try? self.keyPair?.privateKey?.marshal().asString(base: .base64) : nil
         )
-        
+
         return try JSONEncoder().encode(pidJSON)
     }
-    
+
     /// Exports our PeerID as a JSON object
     ///
     /// Returns a JSON object as a String
@@ -80,7 +87,7 @@ public extension PeerID {
     ///   privKey: String? - The private key in protobuf format, encoded in 'base64'
     /// }
     /// ```
-    func toJSONString(includingPrivateKey:Bool = false) throws -> String? {
-        return try String(data: self.toJSON(), encoding: .utf8)
+    public func toJSONString(includingPrivateKey: Bool = false) throws -> String? {
+        try String(data: self.toJSON(), encoding: .utf8)
     }
 }
