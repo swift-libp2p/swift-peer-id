@@ -14,7 +14,7 @@
 
 import Foundation
 
-extension PeerID:Equatable {
+extension PeerID: Equatable {
     public static func == (lhs: PeerID, rhs: PeerID) -> Bool {
         lhs.id == rhs.id
     }

@@ -17,7 +17,7 @@
 syntax = "proto2";
 
 message PeerIdProto {
-   required bytes id = 1;
-   optional bytes pubKey = 2;
-   optional bytes privKey = 3;
+    required bytes id = 1;
+    optional bytes pubKey = 2;
+    optional bytes privKey = 3;
 }
