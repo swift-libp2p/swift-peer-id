@@ -19,6 +19,15 @@ import Multihash
 
 /// - Reference: https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#how-keys-are-encoded-and-messages-signed
 public class PeerID {
+
+    /// General PeerID Errors
+    public enum Errors: Error {
+        /// Unable to extract digest from Multihash
+        case invalidMultihashDigest
+        /// Invalid CID Codec for PeerID Instantiation
+        case invalidCIDCodec(expected: String, received: String)
+    }
+
     /// The keys ID is the SHA-256 multihash of its public key
     /// - Note: The public key is a protobuf encoding containing a type and the DER encoding of the PKCS SubjectPublicKeyInfo.
     public let multihash: Multihash
@@ -43,8 +52,6 @@ public class PeerID {
 
     /// A base32 encoded, version 1 CID, representing this PeerID
     public lazy var cidString: String = {
-        //const cid = new CID(1, 'libp2p-key', this.id, 'base32')
-        //this._idCIDString = cid.toBaseEncodedString('base32')
         (try? CID(version: .v1, codec: .libp2p_key, hash: self.id).toBaseEncodedString(.base32)) ?? ""
     }()
 
@@ -97,7 +104,7 @@ public class PeerID {
     /// - Supports embedded ED25519 Public Keys
     public convenience init(fromBytesID bytes: [UInt8]) throws {
         if let mh = try? Multihash(bytes), mh.algorithm == .identity {
-            guard let digest = mh.digest else { throw NSError(domain: "Malformed Multihash", code: 0) }
+            guard let digest = mh.digest else { throw Errors.invalidMultihashDigest }
             try self.init(marshaledPublicKey: Data(digest))
         } else {
             try self.init(fromBytesIDInternal: bytes)
@@ -106,10 +113,7 @@ public class PeerID {
 
     /// Inits a `PeerID` based solely on an ID value with no underlying `KeyPair`
     internal init(fromBytesIDInternal bytes: [UInt8]) throws {
-        guard let mh = try? Multihash(bytes) else {
-            throw NSError(domain: "Malformed Multihash", code: 0)
-        }
-        self.multihash = mh
+        self.multihash = try Multihash(bytes)
         self.keyPair = nil
     }
 
@@ -123,15 +127,11 @@ public class PeerID {
     /// - Supports embedded ED25519 Public Keys
     public convenience init(cid: CID) throws {
         guard cid.codec == .libp2p_key || cid.codec == .dag_pb else {
-            throw NSError(
-                domain: "Invalid CID codec \(cid.codec), must be either 'v0 dag-pb' or 'v1 libp2p-key'",
-                code: 0,
-                userInfo: nil
-            )
+            throw Errors.invalidCIDCodec(expected: "'v0 dag-pb' or 'v1 libp2p-key'", received: "\(cid.codec)")
         }
         if cid.multihash.algorithm == .identity {
             // Check to see if we can instantiate an ED25519 pubkey from the id
-            guard let digest = cid.multihash.digest else { throw NSError(domain: "Malformed Multihash", code: 0) }
+            guard let digest = cid.multihash.digest else { throw Errors.invalidMultihashDigest }
             try self.init(marshaledPublicKey: Data(digest))
         } else {
             try self.init(fromCIDInternal: cid)
@@ -141,11 +141,7 @@ public class PeerID {
     /// Inits a `PeerID` based solely on a CID value with no underlying `KeyPair`
     internal init(fromCIDInternal cid: CID) throws {
         guard cid.codec == .libp2p_key || cid.codec == .dag_pb else {
-            throw NSError(
-                domain: "Invalid CID codec \(cid.codec), must be either 'v0 dag-pb' or 'v1 libp2p-key'",
-                code: 0,
-                userInfo: nil
-            )
+            throw Errors.invalidCIDCodec(expected: "'v0 dag-pb' or 'v1 libp2p-key'", received: "\(cid.codec)")
         }
         self.multihash = cid.multihash
         self.keyPair = nil
@@ -182,7 +178,7 @@ public class PeerID {
     /// - For Embedded Public Keys, this method will strip the public key from the ID and return the traditional SHA256 encoded value (Qm prefix style)
     public func traditionalB58String() throws -> String {
         if multihash.algorithm == .identity {
-            guard let digest = self.multihash.digest else { throw NSError(domain: "Invalid digest", code: 0) }
+            guard let digest = self.multihash.digest else { throw Errors.invalidMultihashDigest }
             let mh = try Multihash(raw: digest, hashedWith: .sha2_256)
             return mh.b58String
         } else {
@@ -238,11 +234,3 @@ extension Array where Element == UInt8 {
         self.asString(base: .base64Pad)
     }
 }
-
-//public func computeDigest(rawPubKey:Data) -> Data {
-//    if rawPubKey.count <= 42 {
-//        return Multihash(raw: rawPubKey, hashedWith: .identity)
-//    } else {
-//        return rawPubKey.hash()
-//    }
-//}

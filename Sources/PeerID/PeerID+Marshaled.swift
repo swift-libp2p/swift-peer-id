@@ -18,7 +18,22 @@ import Multibase
 
 /// - MARK: Marshaled Imports and Exports
 extension PeerID {
+
+    /// PeerID Marshalling (protobufs) Related Errors
+    public enum MarshallingError: Error {
+        /// Marshalled payload doesn't contain any valid keys
+        case emptyMarshalledData
+        /// This PeerID doesn't have a Private Key to Marshal
+        case noPrivateKeyAvailable
+        /// This PeerID doesn't have a Public Key to Marshal
+        case noPublicKeyAvailable
+    }
+
     /// Inits a `PeerID` from a marshaled `PeerID` string
+    /// - Parameters:
+    ///   - marshaledPeerID: The marshalled PeerID string
+    ///   - base: The base in which the data is encoded, unless the string provided is a valid Multibase string
+    ///
     /// - Note: `base` can be left `nil` if the marshaledPeerID String is `Multibase` compliant (includes the multibase prefix) otherwise, you must specify the ecoded base of the string...
     public convenience init(marshaledPeerID: String, base: BaseEncoding? = nil) throws {
         let marshaledData: Data
@@ -31,6 +46,7 @@ extension PeerID {
     }
 
     /// Inits a `PeerID` from a marshaled `PeerID`
+    /// - Parameter data: The marshalled PeerID (serialized protobuf)
     public convenience init(marshaledPeerID data: Data) throws {
         // Attampt to instantiate a PeerIdProto with the raw, marshaled, data
         let protoPeerID = try PeerIdProto(contiguousBytes: data)
@@ -43,7 +59,7 @@ extension PeerID {
 
         // Enusre the Marshaled data included at least a public key (is this necessary, would we ever need to unmarshal an ID only?)
         guard protoPeerID.hasPubKey || protoPeerID.hasPrivKey else {
-            throw NSError(domain: "No Public or Private Key Found in marshaled data", code: 0, userInfo: nil)
+            throw MarshallingError.emptyMarshalledData
         }
 
         // If we have a private key, attempt to instantiate the PeerID via the private key, otherwise, try the public key...
@@ -52,7 +68,7 @@ extension PeerID {
         } else if protoPeerID.hasPubKey {
             try self.init(marshaledPublicKey: protoPeerID.pubKey)
         } else {
-            throw NSError(domain: "No Public or Private Key Found in marshaled data", code: 0, userInfo: nil)
+            throw MarshallingError.emptyMarshalledData
         }
     }
 
@@ -107,16 +123,18 @@ extension PeerID {
         return try pid.serializedData().bytes
     }
 
+    /// Returns a protobuf encoded version of the id and private key
     public func marshalPrivateKey() throws -> [UInt8] {
         guard let privKey = self.keyPair?.privateKey else {
-            throw NSError(domain: "This PeerID doesn't have a Private Key to Marshal", code: 0, userInfo: nil)
+            throw MarshallingError.noPrivateKeyAvailable
         }
         return try privKey.marshal().bytes
     }
 
+    /// Returns a protobuf encoded version of the id and public key
     public func marshalPublicKey() throws -> [UInt8] {
         guard let pubKey = self.keyPair?.publicKey else {
-            throw NSError(domain: "This PeerID doesn't have a Public Key to Marshal", code: 0, userInfo: nil)
+            throw MarshallingError.noPublicKeyAvailable
         }
         return try pubKey.marshal().bytes
     }
