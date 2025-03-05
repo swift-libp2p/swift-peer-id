@@ -204,7 +204,7 @@ final class PeerIDTests: XCTestCase {
     }
 
     func testEmbeddedEd25519PublicKeys() throws {
-        /// [Embedded:Traditional]
+        // [Embedded:Traditional]
         let ed25519EmbeddedB58IDs = [
             "12D3KooWAfPDpPRRRBrmqy9is2zjU5srQ4hKuZitiGmh4NTTpS2d": "QmPoHmYtUt8BU9eiwMYdBfT6rooBnna5fdAZHUaZASGQY8",
             "12D3KooWF5Qbrbvhhha1AcqRULWAfYzFEnKvWVGBUjw489hpo5La": "Qmbp3SxL2SYcH6Ly4r5SGQwfxkDCJPuhJG35GCZimcTiBc",
@@ -213,7 +213,7 @@ final class PeerIDTests: XCTestCase {
             "12D3KooWNPQXNm9CJirv9uUKKZgWrTFYGuxRmXFzUjj3VXsoFr2H": "QmXa6eSg5waAp6FjHVaoeZmKPYANK8aRmyvzMRTqLKkbNv",
         ]
 
-        /// Ensure that we can extract the ED25519 Public Key when it's embedded in the PeerID
+        // Ensure that we can extract the ED25519 Public Key when it's embedded in the PeerID
         for id in ed25519EmbeddedB58IDs {
             let embeddedKeyInBytes = try BaseEncoding.decode(id.0, as: .base58btc)
 
@@ -225,7 +225,17 @@ final class PeerIDTests: XCTestCase {
             XCTAssertEqual(peerID.keyPair?.keyType, .ed25519)
         }
 
-        /// Ensure we can instantiate a PeerID (id only) with the traditional b58 Multihash ED25519 bytes id
+        // Ensure we can instantiate the KeyPair via the CID string initializer as well
+        for id in ed25519EmbeddedB58IDs {
+            let peerID = try PeerID(cid: id.0)
+
+            XCTAssertEqual(peerID.b58String, id.0)
+            XCTAssertEqual(peerID.type, .isPublic)
+            XCTAssertNotNil(peerID.keyPair?.publicKey)
+            XCTAssertEqual(peerID.keyPair?.keyType, .ed25519)
+        }
+
+        // Ensure we can instantiate a PeerID (id only) with the traditional b58 Multihash ED25519 bytes id
         for id in ed25519EmbeddedB58IDs {
             let edBytes = try BaseEncoding.decode(id.1, as: .base58btc)
 
@@ -236,17 +246,55 @@ final class PeerIDTests: XCTestCase {
             XCTAssertNil(peerID.keyPair)
         }
 
+        // Ensure we can instantiate the KeyPair via the CID string initializer as well
+        for id in ed25519EmbeddedB58IDs {
+            let peerID = try PeerID(cid: id.1)
+
+            XCTAssertEqual(peerID.b58String, id.1)
+            XCTAssertEqual(peerID.type, .idOnly)
+            XCTAssertNil(peerID.keyPair)
+        }
+
+        // Ensure we can compare them appropriately
+        for id in ed25519EmbeddedB58IDs {
+            let pid1 = try PeerID(cid: id.0)
+            let pid2 = try PeerID(cid: id.1)
+
+            XCTAssertTrue(pid1.isEquivalent(to: pid2))
+            XCTAssertEqual(pid1, pid2)
+        }
+
+        // Ensure we can force the traditional B58 String if necessary
+        for id in ed25519EmbeddedB58IDs {
+            let pid1 = try PeerID(cid: id.0)
+
+            XCTAssertEqual(try pid1.traditionalB58String(), id.1)
+        }
+    }
+
+    func testEmbeddedEd25519PublicKeysPreference() throws {
+        let pid = try PeerID(.Ed25519)
+        // Ensure we default to embedding the pubkey in our PeerIDs b58 string
+        XCTAssertEqual(pid.multihash.algorithm, .identity)
+        XCTAssertTrue(pid.b58String.hasPrefix("12D3KooW"))
+    }
+
+    func testRecoverPublicKeyFromPeerIDWithEmbeddedED25519Keys() throws {
+        // RSA doesn't support embedding pub keys in their ID's
         let rsa = try PeerID(.RSA(bits: .B1024))
         let rsaID = rsa.id
 
+        // So when we instantiate a PeerID from it's ID, it's public key should be nil
         let recoveredPeerID = try PeerID(fromBytesID: rsaID)
         XCTAssertEqual(recoveredPeerID.b58String, rsa.b58String)
         XCTAssertEqual(recoveredPeerID.type, .idOnly)
         XCTAssertNil(recoveredPeerID.keyPair?.publicKey)
 
+        // ED25519 supports embedding it's public key in it's ID
         let ed25519 = try PeerID(.Ed25519)
         let edID = ed25519.id
 
+        // So when we instantiate a PeerID from it's ID, it's public key should be populated
         let recoveredED = try PeerID(fromBytesID: edID)
         XCTAssertEqual(recoveredED.b58String, ed25519.b58String)
         XCTAssertEqual(recoveredED.type, .isPublic)
