@@ -18,6 +18,12 @@ import Multihash
 
 /// - MARK: JSON Imports and Exports
 extension PeerID {
+    /// PeerID JSON Related Errors
+    public enum JSONError: Error {
+        /// Invalid JSON Payload
+        case invalidJSON
+    }
+
     /// An Internal PeerID struct to facilitate JSON Encoding and Decoding
     internal struct PeerIDJSON: Codable {
         /// base58 encoded string
@@ -53,7 +59,7 @@ extension PeerID {
             /// TODO: Compare the provided publicKey and ID to the ones derived from the private key and throw an error if they don't match...
             try self.init(marshaledPrivateKey: privKey, base: .base64)
         } else {
-            throw NSError(domain: "Failed to init PeerID from json", code: 0, userInfo: nil)
+            throw JSONError.invalidJSON
         }
     }
 
