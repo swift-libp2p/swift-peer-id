@@ -21,8 +21,15 @@ import Multihash
 public class PeerID {
     /// The keys ID is the SHA-256 multihash of its public key
     /// - Note: The public key is a protobuf encoding containing a type and the DER encoding of the PKCS SubjectPublicKeyInfo.
-    public let id: [UInt8]
+    public let multihash: Multihash
     public let keyPair: LibP2PCrypto.Keys.KeyPair?
+
+    /// Returns the ID of this PeerID as bytes
+    public var id: [UInt8] { multihash.value }
+
+    /// Returns the ID of this PeerID as bytes
+    @available(*, deprecated, renamed: "id")
+    public var bytes: [UInt8] { id }
 
     /// Returns the PeerID's id as a base58 string (multihash/CIDv0).
     public lazy var b58String: String = {
@@ -58,22 +65,17 @@ public class PeerID {
         }
     }()
 
-    /// Returns the id of this PeerID as bytes
-    public var bytes: [UInt8] {
-        id
-    }
-
     /// Generates a Public/Private `KeyPair` of the specified type and initializes a `PeerID` with it (defaults to RSA 2048 bits)
     public init(_ keyType: LibP2PCrypto.Keys.KeyPairType = .RSA(bits: .B2048)) throws {
         let keyPair = try LibP2PCrypto.Keys.generateKeyPair(keyType)
 
-        self.id = try keyPair.rawID()
+        self.multihash = try keyPair.multihash()
         self.keyPair = keyPair
     }
 
     /// Initializes a `PeerID` using an existing Public/Private `KeyPair`
     public init(keyPair: LibP2PCrypto.Keys.KeyPair) throws {
-        self.id = try keyPair.rawID()
+        self.multihash = try keyPair.multihash()
         self.keyPair = keyPair
     }
 
@@ -87,13 +89,16 @@ public class PeerID {
 
     /// Inits a `PeerID` based solely on an ID value with no underlying `KeyPair`
     public init(fromHexID hex: String) throws {
-        self.id = try Multihash(hexString: hex).value  //or digest
+        self.multihash = try Multihash(hexString: hex)
         self.keyPair = nil
     }
 
+    /// Inits a `PeerID` based solely on an ID value with no underlying `KeyPair`
+    /// - Supports embedded ED25519 Public Keys
     public convenience init(fromBytesID bytes: [UInt8]) throws {
         if let mh = try? Multihash(bytes), mh.algorithm == .identity {
-            try self.init(marshaledPublicKey: Data(mh.digest!))
+            guard let digest = mh.digest else { throw NSError(domain: "Malformed Multihash", code: 0) }
+            try self.init(marshaledPublicKey: Data(digest))
         } else {
             try self.init(fromBytesIDInternal: bytes)
         }
@@ -101,17 +106,22 @@ public class PeerID {
 
     /// Inits a `PeerID` based solely on an ID value with no underlying `KeyPair`
     internal init(fromBytesIDInternal bytes: [UInt8]) throws {
-        self.id = bytes
+        guard let mh = try? Multihash(bytes) else {
+            throw NSError(domain: "Malformed Multihash", code: 0)
+        }
+        self.multihash = mh
         self.keyPair = nil
     }
 
     /// Inits a `PeerID` from a v0 dag-pb or v1 libp2p-key CID complient string
+    /// - Supports embedded ED25519 Public Keys
     public convenience init(cid: String) throws {
         try self.init(cid: CID(cid))
     }
 
     /// Inits a `PeerID` from a v0 dag-pb or v1 libp2p-key CID
-    public init(cid: CID) throws {
+    /// - Supports embedded ED25519 Public Keys
+    public convenience init(cid: CID) throws {
         guard cid.codec == .libp2p_key || cid.codec == .dag_pb else {
             throw NSError(
                 domain: "Invalid CID codec \(cid.codec), must be either 'v0 dag-pb' or 'v1 libp2p-key'",
@@ -119,7 +129,25 @@ public class PeerID {
                 userInfo: nil
             )
         }
-        self.id = cid.multihash.value
+        if cid.multihash.algorithm == .identity {
+            // Check to see if we can instantiate an ED25519 pubkey from the id
+            guard let digest = cid.multihash.digest else { throw NSError(domain: "Malformed Multihash", code: 0) }
+            try self.init(marshaledPublicKey: Data(digest))
+        } else {
+            try self.init(fromCIDInternal: cid)
+        }
+    }
+
+    /// Inits a `PeerID` based solely on a CID value with no underlying `KeyPair`
+    internal init(fromCIDInternal cid: CID) throws {
+        guard cid.codec == .libp2p_key || cid.codec == .dag_pb else {
+            throw NSError(
+                domain: "Invalid CID codec \(cid.codec), must be either 'v0 dag-pb' or 'v1 libp2p-key'",
+                code: 0,
+                userInfo: nil
+            )
+        }
+        self.multihash = cid.multihash
         self.keyPair = nil
     }
 
