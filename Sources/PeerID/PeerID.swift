@@ -205,24 +205,12 @@ public class PeerID {
 extension PeerID: CustomStringConvertible {
     public var description: String {
         let pid = self.b58String
-        var skip = 0
-        if pid.hasPrefix("Qm") {
-            skip = 2
-        } else if pid.hasPrefix("12D3KooW") {
-            skip = 8
-        }
-        return "<peer.ID \(pid.dropFirst(skip).prefix(6))>"
+        return "<peer.ID \(dropPrefix(pid).prefix(6))>"
     }
 
     public var shortDescription: String {
         let pid = self.b58String
-        if pid.hasPrefix("Qm") {
-            return String(pid.dropFirst(2).prefix(6))
-        } else if pid.hasPrefix("12D3KooW") {
-            return String(pid.dropFirst(8).prefix(6))
-        } else {
-            return String(pid.prefix(6))
-        }
+        return String(dropPrefix(pid).prefix(6))
     }
 
     public var debugDescription: String {
@@ -232,6 +220,16 @@ extension PeerID: CustomStringConvertible {
             pubKey: \(keyPair?.publicKey.asString(base: .base64Pad) ?? "NIL")
             privKey: \(keyPair?.privateKey?.asString(base: .base64Pad) ?? "NIL")
         """
+    }
+
+    private func dropPrefix(_ pid: String) -> String.SubSequence {
+        var skip = 0
+        if pid.hasPrefix("Qm") {
+            skip = 2
+        } else if pid.hasPrefix("12D3KooW") {
+            skip = 8
+        }
+        return pid.dropFirst(skip)
     }
 }
 
