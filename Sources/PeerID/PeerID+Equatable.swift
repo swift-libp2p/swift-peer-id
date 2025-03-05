@@ -16,7 +16,7 @@ import Foundation
 
 extension PeerID: Equatable {
     public static func == (lhs: PeerID, rhs: PeerID) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id || lhs.isEquivalent(to: rhs)
     }
     public static func == (lhs: [UInt8], rhs: PeerID) -> Bool {
         lhs == rhs.id
