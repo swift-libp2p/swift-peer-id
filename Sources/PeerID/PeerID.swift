@@ -158,6 +158,38 @@ public class PeerID {
         self.cidString
     }
 
+    /// This method checks each PeerID's multihash for embedded public keys (via the use of the identity protocol) and converts them to the traditional SHA256 versions before comparing the underlying digests.
+    /// - Allows for comparisons between Traditional PeerIDs and Embedded Public Key PeerIDs.
+    internal func isEquivalent(to other: PeerID) -> Bool {
+        var lhs = self.multihash
+        var rhs = other.multihash
+
+        if lhs.algorithm == .identity {
+            guard let digest = lhs.digest else { return false }
+            guard let mh = try? Multihash(raw: digest, hashedWith: .sha2_256) else { return false }
+            lhs = mh
+        } else if rhs.algorithm == .identity {
+            guard let digest = rhs.digest else { return false }
+            guard let mh = try? Multihash(raw: digest, hashedWith: .sha2_256) else { return false }
+            rhs = mh
+        }
+
+        return lhs == rhs
+    }
+
+    /// Returns the PeerID as a SHA256 Base58 Encoding
+    /// - This is equivalent to calling `.b58String` for all keys except embedded ED25519 Public Keys
+    /// - For Embedded Public Keys, this method will strip the public key from the ID and return the traditional SHA256 encoded value (Qm prefix style)
+    public func traditionalB58String() throws -> String {
+        if multihash.algorithm == .identity {
+            guard let digest = self.multihash.digest else { throw NSError(domain: "Invalid digest", code: 0) }
+            let mh = try Multihash(raw: digest, hashedWith: .sha2_256)
+            return mh.b58String
+        } else {
+            return self.b58String
+        }
+    }
+
     /// Returns the Peer ID as a printable string without the Qm prefix.
     ///
     /// Example: <peer.ID xxxxxx>
