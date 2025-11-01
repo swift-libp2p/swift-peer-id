@@ -14,7 +14,7 @@
 
 import CID
 import Foundation
-@preconcurrency import LibP2PCrypto
+import LibP2PCrypto
 import Multihash
 
 /// - Reference: https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#how-keys-are-encoded-and-messages-signed
