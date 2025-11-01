@@ -35,7 +35,7 @@ extension PeerID {
     ///   - base: The base in which the data is encoded, unless the string provided is a valid Multibase string
     ///
     /// - Note: `base` can be left `nil` if the marshaledPeerID String is `Multibase` compliant (includes the multibase prefix) otherwise, you must specify the ecoded base of the string...
-    public convenience init(marshaledPeerID: String, base: BaseEncoding? = nil) throws {
+    public init(marshaledPeerID: String, base: BaseEncoding? = nil) throws {
         let marshaledData: Data
         if let base = base {
             marshaledData = try BaseEncoding.decode(marshaledPeerID, as: base).data
@@ -47,9 +47,9 @@ extension PeerID {
 
     /// Inits a `PeerID` from a marshaled `PeerID`
     /// - Parameter data: The marshalled PeerID (serialized protobuf)
-    public convenience init(marshaledPeerID data: Data) throws {
+    public init(marshaledPeerID data: Data) throws {
         // Attampt to instantiate a PeerIdProto with the raw, marshaled, data
-        let protoPeerID = try PeerIdProto(contiguousBytes: data)
+        let protoPeerID = try PeerIdProto(serializedBytes: data)
 
         //print(protoPeerID.id.asString(base: .base64))
         //print("Has PubKey: \(protoPeerID.hasPubKey)")
@@ -73,22 +73,22 @@ extension PeerID {
     }
 
     /// Inits a `PeerID` from a marshaled public key string
-    public convenience init(marshaledPublicKey str: String, base: BaseEncoding) throws {
+    public init(marshaledPublicKey str: String, base: BaseEncoding) throws {
         try self.init(keyPair: LibP2PCrypto.Keys.KeyPair(marshaledPublicKey: str, base: base))
     }
 
     /// Inits a `PeerID` from a marshaled public key
-    public convenience init(marshaledPublicKey key: Data) throws {
+    public init(marshaledPublicKey key: Data) throws {
         try self.init(keyPair: LibP2PCrypto.Keys.KeyPair(marshaledPublicKey: key))
     }
 
     /// Inits a `PeerID` from a marshaled private key string
-    public convenience init(marshaledPrivateKey str: String, base: BaseEncoding) throws {
+    public init(marshaledPrivateKey str: String, base: BaseEncoding) throws {
         try self.init(keyPair: LibP2PCrypto.Keys.KeyPair(marshaledPrivateKey: str, base: base))
     }
 
     /// Inits a `PeerID` from a marshaled private key
-    public convenience init(marshaledPrivateKey data: Data) throws {
+    public init(marshaledPrivateKey data: Data) throws {
         try self.init(keyPair: LibP2PCrypto.Keys.KeyPair(marshaledPrivateKey: data))
     }
 
@@ -120,7 +120,7 @@ extension PeerID {
         if includingPrivateKey, let privKey = self.keyPair?.privateKey {
             pid.privKey = try privKey.marshal()
         }
-        return try pid.serializedData().bytes
+        return try pid.serializedData().byteArray
     }
 
     /// Returns a protobuf encoded version of the id and private key
@@ -128,7 +128,7 @@ extension PeerID {
         guard let privKey = self.keyPair?.privateKey else {
             throw MarshallingError.noPrivateKeyAvailable
         }
-        return try privKey.marshal().bytes
+        return try privKey.marshal().byteArray
     }
 
     /// Returns a protobuf encoded version of the id and public key
@@ -136,6 +136,12 @@ extension PeerID {
         guard let pubKey = self.keyPair?.publicKey else {
             throw MarshallingError.noPublicKeyAvailable
         }
-        return try pubKey.marshal().bytes
+        return try pubKey.marshal().byteArray
+    }
+}
+
+extension Data {
+    var byteArray: [UInt8] {
+        Array(self)
     }
 }

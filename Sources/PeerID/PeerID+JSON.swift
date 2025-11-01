@@ -44,7 +44,7 @@ extension PeerID {
     ///   obj.privKey: String? - The private key in protobuf format, encoded in 'base64'
     /// }
     /// ```
-    public convenience init(fromJSON json: Data) throws {
+    public init(fromJSON json: Data) throws {
         let data = try JSONDecoder().decode(PeerIDJSON.self, from: json)
 
         if data.privKey == nil && data.pubKey == nil {

@@ -22,6 +22,6 @@ extension PeerID: Equatable {
         lhs == rhs.id
     }
     public static func == (lhs: Data, rhs: PeerID) -> Bool {
-        lhs.bytes == rhs.id
+        lhs.byteArray == rhs.id
     }
 }

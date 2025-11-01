@@ -13,10 +13,11 @@
 //===----------------------------------------------------------------------===//
 
 import CID
+import Foundation
 import LibP2PCrypto
 import Multibase
 import Multihash
-import XCTest
+import Testing
 
 @testable import PeerID
 
@@ -24,7 +25,8 @@ import XCTest
 /// Make sure to compile the package for release before running these tests.
 /// ```swift test -c release -Xswiftc -enable-testing```
 /// Otherwise the RSA key generation can take an extremely long time...
-final class PeerIDTests: XCTestCase {
+@Suite("PeerID Tests")
+struct PeerIDTests {
 
     struct goPeerID {
         static let id = "QmRLoXS3E73psYaUsma1VSbboTa2J8Z9kso1tpiGLk9WQ4"
@@ -43,72 +45,72 @@ final class PeerIDTests: XCTestCase {
     }
 
     static let testIdHex = samplePeerID.id
-    static let testIdBytes = try! Multihash(hexString: testIdHex)  //mh.fromHexString(samplePeerID["id"])
+    nonisolated(unsafe) static let testIdBytes = try! Multihash(hexString: testIdHex)
     static let testIdB58String = testIdBytes.asString(base: .base58btc)
-    static let testIdCID = try! CID(version: .v1, codec: .libp2p_key, multihash: testIdBytes)
+    nonisolated(unsafe) static let testIdCID = try! CID(version: .v1, codec: .libp2p_key, multihash: testIdBytes)
     static let testIdCIDString = try! testIdCID.toBaseEncodedString(.base32)
 
     /// Generate a new PeerID with default params (RSA 2048)
-    func testGeneratePeerID_Default_Params() throws {
+    @Test func testGeneratePeerID_Default_Params() throws {
         let peerID = try PeerID()
         print(peerID.debugDescription)
-        XCTAssertEqual(peerID.b58String.count, 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
-        XCTAssertNotNil(peerID.keyPair)
-        XCTAssertTrue(peerID.keyPair?.keyType == .rsa)
-        XCTAssertNotNil(peerID.keyPair?.privateKey)
-        XCTAssertNotNil(peerID.keyPair?.publicKey)
-        XCTAssertEqual(peerID.keyPair?.attributes()?.size, 2048)
+        #expect(peerID.b58String.count == 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
+        #expect(peerID.keyPair != nil)
+        #expect(peerID.keyPair?.keyType == .rsa)
+        #expect(peerID.keyPair?.privateKey != nil)
+        #expect(peerID.keyPair?.publicKey != nil)
+        #expect(peerID.keyPair?.attributes()?.size == 2048)
     }
 
     /// Creates a new PeerID with an underlying RSA 1024 bit key pair
-    func testGeneratePeerID_RSA_1024() throws {
+    @Test func testGeneratePeerID_RSA_1024() throws {
         let peerID = try PeerID(.RSA(bits: .B1024))
         print(peerID.debugDescription)
-        XCTAssertEqual(peerID.b58String.count, 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
-        XCTAssertNotNil(peerID.keyPair)
-        XCTAssertTrue(peerID.keyPair?.keyType == .rsa)
-        XCTAssertNotNil(peerID.keyPair?.privateKey)
-        XCTAssertNotNil(peerID.keyPair?.publicKey)
-        XCTAssertEqual(peerID.keyPair?.attributes()?.size, 1024)
+        #expect(peerID.b58String.count == 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
+        #expect(peerID.keyPair != nil)
+        #expect(peerID.keyPair?.keyType == .rsa)
+        #expect(peerID.keyPair?.privateKey != nil)
+        #expect(peerID.keyPair?.publicKey != nil)
+        #expect(peerID.keyPair?.attributes()?.size == 1024)
     }
 
     /// Creates a new PeerID with an underlying RSA 2048 bit key pair
-    func testGeneratePeerID_RSA_2048() throws {
+    @Test func testGeneratePeerID_RSA_2048() throws {
         let peerID = try PeerID(.RSA(bits: .B2048))
         print(peerID.debugDescription)
-        XCTAssertEqual(peerID.b58String.count, 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
-        XCTAssertNotNil(peerID.keyPair)
-        XCTAssertTrue(peerID.keyPair?.keyType == .rsa)
-        XCTAssertNotNil(peerID.keyPair?.privateKey)
-        XCTAssertNotNil(peerID.keyPair?.publicKey)
-        XCTAssertEqual(peerID.keyPair?.attributes()?.size, 2048)
+        #expect(peerID.b58String.count == 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
+        #expect(peerID.keyPair != nil)
+        #expect(peerID.keyPair?.keyType == .rsa)
+        #expect(peerID.keyPair?.privateKey != nil)
+        #expect(peerID.keyPair?.publicKey != nil)
+        #expect(peerID.keyPair?.attributes()?.size == 2048)
     }
 
-    #if canImport(Security)
     /// Creates a new PeerID with an underlying RSA 3072 bit key pair
+    @Test(.canImportSecurity)
     func testGeneratePeerID_RSA_3072() throws {
         let peerID = try PeerID(.RSA(bits: .B3072))
         print(peerID.debugDescription)
-        XCTAssertEqual(peerID.b58String.count, 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
-        XCTAssertNotNil(peerID.keyPair)
-        XCTAssertTrue(peerID.keyPair?.keyType == .rsa)
-        XCTAssertNotNil(peerID.keyPair?.privateKey)
-        XCTAssertNotNil(peerID.keyPair?.publicKey)
-        XCTAssertEqual(peerID.keyPair?.attributes()?.size, 3072)
+        #expect(peerID.b58String.count == 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
+        #expect(peerID.keyPair != nil)
+        #expect(peerID.keyPair?.keyType == .rsa)
+        #expect(peerID.keyPair?.privateKey != nil)
+        #expect(peerID.keyPair?.publicKey != nil)
+        #expect(peerID.keyPair?.attributes()?.size == 3072)
     }
 
     /// Creates a new PeerID with an underlying RSA 4096 bit key pair
+    @Test(.canImportSecurity)
     func testGeneratePeerID_RSA_4096() throws {
         let peerID = try PeerID(.RSA(bits: .B4096))
         print(peerID.debugDescription)
-        XCTAssertEqual(peerID.b58String.count, 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
-        XCTAssertNotNil(peerID.keyPair)
-        XCTAssertTrue(peerID.keyPair?.keyType == .rsa)
-        XCTAssertNotNil(peerID.keyPair?.privateKey)
-        XCTAssertNotNil(peerID.keyPair?.publicKey)
-        XCTAssertEqual(peerID.keyPair?.attributes()?.size, 4096)
+        #expect(peerID.b58String.count == 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
+        #expect(peerID.keyPair != nil)
+        #expect(peerID.keyPair?.keyType == .rsa)
+        #expect(peerID.keyPair?.privateKey != nil)
+        #expect(peerID.keyPair?.publicKey != nil)
+        #expect(peerID.keyPair?.attributes()?.size == 4096)
     }
-    #endif
 
     /// Creates a new PeerID with an underlying Secp256k1 key pair
     ///
@@ -120,90 +122,90 @@ final class PeerIDTests: XCTestCase {
     ///   expect(id.toB58String()).to.equal(expB58)
     /// })
     /// ```
-    func testGenerate_Secp256k1_PeerID() throws {
+    @Test func testGenerate_Secp256k1_PeerID() throws {
         let peerID = try PeerID(.Secp256k1)
         print(peerID.debugDescription)
         //let expB58 = try Multihash(raw: peerID.publicKey, hashedWith: .identity)
         //XCTAssertEqual(peerID.b58String, expB58.asString(base: .base58btc))
-        XCTAssertEqual(peerID.b58String.count, 46)
-        XCTAssertNotNil(peerID.keyPair)
-        XCTAssertTrue(peerID.keyPair?.keyType == .secp256k1)
-        XCTAssertNotNil(peerID.keyPair?.privateKey)
-        XCTAssertNotNil(peerID.keyPair?.publicKey)
-        XCTAssertEqual(peerID.keyPair?.attributes()?.size, 64)
+        #expect(peerID.b58String.count == 46)
+        #expect(peerID.keyPair != nil)
+        #expect(peerID.keyPair?.keyType == .secp256k1)
+        #expect(peerID.keyPair?.privateKey != nil)
+        #expect(peerID.keyPair?.publicKey != nil)
+        #expect(peerID.keyPair?.attributes()?.size == 64)
     }
 
     /// Creates a new PeerID with an underlying Ed25519 key pair
-    func testGenerate_Ed25519_PeerID() throws {
+    @Test func testGenerate_Ed25519_PeerID() throws {
         let peerID = try PeerID(.Ed25519)
         print(peerID.debugDescription)
         //let expB58 = try Multihash(raw: peerID.keyPair!.publicKey.data, hashedWith: .identity)
         //XCTAssertEqual(peerID.b58String, expB58.asString(base: .base58btc))
-        XCTAssertEqual(peerID.b58String.count, 52)
-        XCTAssertNotNil(peerID.keyPair)
-        XCTAssertTrue(peerID.keyPair?.keyType == .ed25519)
-        XCTAssertNotNil(peerID.keyPair?.privateKey)
-        XCTAssertNotNil(peerID.keyPair?.publicKey)
-        XCTAssertEqual(peerID.keyPair?.attributes()?.size, 32)
+        #expect(peerID.b58String.count == 52)
+        #expect(peerID.keyPair != nil)
+        #expect(peerID.keyPair?.keyType == .ed25519)
+        #expect(peerID.keyPair?.privateKey != nil)
+        #expect(peerID.keyPair?.publicKey != nil)
+        #expect(peerID.keyPair?.attributes()?.size == 32)
     }
 
-    func testFromHexString() throws {
+    @Test func testFromHexString() throws {
         let peerID = try PeerID(fromHexID: PeerIDTests.testIdHex)
         print(peerID.id.asString(base: .base16))
         print(peerID.hexString)
         print(peerID)
-        XCTAssertEqual(peerID.hexString, PeerIDTests.testIdHex)
-        XCTAssertEqual(peerID.id.asString(base: .base16), PeerIDTests.testIdHex)
-        XCTAssertNil(peerID.keyPair)
+        #expect(peerID.hexString == PeerIDTests.testIdHex)
+        #expect(peerID.id.asString(base: .base16) == PeerIDTests.testIdHex)
+        #expect(peerID.keyPair == nil)
     }
 
-    func testFromBytes() throws {
+    @Test func testFromBytes() throws {
         let peerID = try PeerID(fromBytesID: PeerIDTests.testIdBytes.value)
         print(peerID)
-        XCTAssertEqual(peerID.hexString, PeerIDTests.testIdHex)
-        XCTAssertEqual(peerID.id.asString(base: .base16), PeerIDTests.testIdHex)
-        XCTAssertNil(peerID.keyPair)
+        #expect(peerID.hexString == PeerIDTests.testIdHex)
+        #expect(peerID.id.asString(base: .base16) == PeerIDTests.testIdHex)
+        #expect(peerID.keyPair == nil)
     }
 
-    func testCIDRoundTripRSA() throws {
+    @Test func testCIDRoundTripRSA() throws {
         let peerID = try PeerID(.RSA(bits: .B1024))
 
         let cid = peerID.cidString
 
         let peerID2 = try PeerID(cid: cid)
 
-        XCTAssertEqual(peerID.bytes, peerID2.bytes)
+        #expect(peerID.id == peerID2.id)
     }
 
-    func testCIDRoundTripEd25519() throws {
+    @Test func testCIDRoundTripEd25519() throws {
         let peerID = try PeerID(.Ed25519)
 
         let cid = peerID.cidString
 
         let peerID2 = try PeerID(cid: cid)
 
-        XCTAssertEqual(peerID.bytes, peerID2.bytes)
+        #expect(peerID.id == peerID2.id)
     }
 
-    func testCIDRoundTripSecp256k1() throws {
+    @Test func testCIDRoundTripSecp256k1() throws {
         let peerID = try PeerID(.Secp256k1)
 
         let cid = peerID.cidString
 
         let peerID2 = try PeerID(cid: cid)
 
-        XCTAssertEqual(peerID.bytes, peerID2.bytes)
+        #expect(peerID.id == peerID2.id)
     }
 
-    func testHexDecoding() throws {
+    @Test func testHexDecoding() throws {
         /// - FIXME: Decoding base16 (hex) is super slow using the Multibase library
         let hex1 = try BaseEncoding.decode(PeerIDTests.samplePeerID.marshaled, as: .base16).data
         let hex2 = Data(hex: PeerIDTests.samplePeerID.marshaled)
 
-        XCTAssertEqual(hex1, hex2)
+        #expect(hex1 == hex2)
     }
 
-    func testEmbeddedEd25519PublicKeys() throws {
+    @Test func testEmbeddedEd25519PublicKeys() throws {
         // [Embedded:Traditional]
         let ed25519EmbeddedB58IDs = [
             "12D3KooWAfPDpPRRRBrmqy9is2zjU5srQ4hKuZitiGmh4NTTpS2d": "QmPoHmYtUt8BU9eiwMYdBfT6rooBnna5fdAZHUaZASGQY8",
@@ -217,42 +219,42 @@ final class PeerIDTests: XCTestCase {
         for id in ed25519EmbeddedB58IDs {
             let embeddedKeyInBytes = try BaseEncoding.decode(id.0, as: .base58btc)
 
-            let peerID = try PeerID(fromBytesID: embeddedKeyInBytes.data.bytes)
+            let peerID = try PeerID(fromBytesID: embeddedKeyInBytes.data.byteArray)
 
-            XCTAssertEqual(peerID.b58String, id.0)
-            XCTAssertEqual(peerID.type, .isPublic)
-            XCTAssertNotNil(peerID.keyPair?.publicKey)
-            XCTAssertEqual(peerID.keyPair?.keyType, .ed25519)
+            #expect(peerID.b58String == id.0)
+            #expect(peerID.type == .isPublic)
+            #expect(peerID.keyPair?.publicKey != nil)
+            #expect(peerID.keyPair?.keyType == .ed25519)
         }
 
         // Ensure we can instantiate the KeyPair via the CID string initializer as well
         for id in ed25519EmbeddedB58IDs {
             let peerID = try PeerID(cid: id.0)
 
-            XCTAssertEqual(peerID.b58String, id.0)
-            XCTAssertEqual(peerID.type, .isPublic)
-            XCTAssertNotNil(peerID.keyPair?.publicKey)
-            XCTAssertEqual(peerID.keyPair?.keyType, .ed25519)
+            #expect(peerID.b58String == id.0)
+            #expect(peerID.type == .isPublic)
+            #expect(peerID.keyPair?.publicKey != nil)
+            #expect(peerID.keyPair?.keyType == .ed25519)
         }
 
         // Ensure we can instantiate a PeerID (id only) with the traditional b58 Multihash ED25519 bytes id
         for id in ed25519EmbeddedB58IDs {
             let edBytes = try BaseEncoding.decode(id.1, as: .base58btc)
 
-            let peerID = try PeerID(fromBytesID: edBytes.data.bytes)
+            let peerID = try PeerID(fromBytesID: edBytes.data.byteArray)
 
-            XCTAssertEqual(peerID.b58String, id.1)
-            XCTAssertEqual(peerID.type, .idOnly)
-            XCTAssertNil(peerID.keyPair)
+            #expect(peerID.b58String == id.1)
+            #expect(peerID.type == .idOnly)
+            #expect(peerID.keyPair == nil)
         }
 
         // Ensure we can instantiate the KeyPair via the CID string initializer as well
         for id in ed25519EmbeddedB58IDs {
             let peerID = try PeerID(cid: id.1)
 
-            XCTAssertEqual(peerID.b58String, id.1)
-            XCTAssertEqual(peerID.type, .idOnly)
-            XCTAssertNil(peerID.keyPair)
+            #expect(peerID.b58String == id.1)
+            #expect(peerID.type == .idOnly)
+            #expect(peerID.keyPair == nil)
         }
 
         // Ensure we can compare them appropriately
@@ -260,35 +262,35 @@ final class PeerIDTests: XCTestCase {
             let pid1 = try PeerID(cid: id.0)
             let pid2 = try PeerID(cid: id.1)
 
-            XCTAssertTrue(pid1.isEquivalent(to: pid2))
-            XCTAssertEqual(pid1, pid2)
+            #expect(pid1.isEquivalent(to: pid2))
+            #expect(pid1 == pid2)
         }
 
         // Ensure we can force the traditional B58 String if necessary
         for id in ed25519EmbeddedB58IDs {
             let pid1 = try PeerID(cid: id.0)
 
-            XCTAssertEqual(try pid1.traditionalB58String(), id.1)
+            #expect(try pid1.traditionalB58String() == id.1)
         }
     }
 
-    func testEmbeddedEd25519PublicKeysPreference() throws {
+    @Test func testEmbeddedEd25519PublicKeysPreference() throws {
         let pid = try PeerID(.Ed25519)
         // Ensure we default to embedding the pubkey in our PeerIDs b58 string
-        XCTAssertEqual(pid.multihash.algorithm, .identity)
-        XCTAssertTrue(pid.b58String.hasPrefix("12D3KooW"))
+        #expect(pid.multihash.algorithm == .identity)
+        #expect(pid.b58String.hasPrefix("12D3KooW"))
     }
 
-    func testRecoverPublicKeyFromPeerIDWithEmbeddedED25519Keys() throws {
+    @Test func testRecoverPublicKeyFromPeerIDWithEmbeddedED25519Keys() throws {
         // RSA doesn't support embedding pub keys in their ID's
         let rsa = try PeerID(.RSA(bits: .B1024))
         let rsaID = rsa.id
 
         // So when we instantiate a PeerID from it's ID, it's public key should be nil
         let recoveredPeerID = try PeerID(fromBytesID: rsaID)
-        XCTAssertEqual(recoveredPeerID.b58String, rsa.b58String)
-        XCTAssertEqual(recoveredPeerID.type, .idOnly)
-        XCTAssertNil(recoveredPeerID.keyPair?.publicKey)
+        #expect(recoveredPeerID.b58String == rsa.b58String)
+        #expect(recoveredPeerID.type == .idOnly)
+        #expect(recoveredPeerID.keyPair?.publicKey == nil)
 
         // ED25519 supports embedding it's public key in it's ID
         let ed25519 = try PeerID(.Ed25519)
@@ -296,34 +298,37 @@ final class PeerIDTests: XCTestCase {
 
         // So when we instantiate a PeerID from it's ID, it's public key should be populated
         let recoveredED = try PeerID(fromBytesID: edID)
-        XCTAssertEqual(recoveredED.b58String, ed25519.b58String)
-        XCTAssertEqual(recoveredED.type, .isPublic)
-        XCTAssertNotNil(recoveredED.keyPair?.publicKey)
-        XCTAssertEqual(recoveredED.keyPair?.keyType, .ed25519)
-        XCTAssertEqual(recoveredED.keyPair?.publicKey.data, ed25519.keyPair?.publicKey.data)
+        #expect(recoveredED.b58String == ed25519.b58String)
+        #expect(recoveredED.type == .isPublic)
+        #expect(recoveredED.keyPair?.publicKey != nil)
+        #expect(recoveredED.keyPair?.keyType == .ed25519)
+        #expect(recoveredED.keyPair?.publicKey.data == ed25519.keyPair?.publicKey.data)
     }
 
-    func testFromMarshaledStringSample() throws {
+    @Test func testFromMarshaledStringSample() throws {
         let peerID = try PeerID(marshaledPeerID: PeerIDTests.samplePeerID.marshaled, base: .base16)
         //let peerID = try PeerID(marshaledPeerID: Data(hex: PeerIDTests.samplePeerID.marshaled))
         print(peerID)
-        XCTAssertEqual(peerID.hexString, PeerIDTests.samplePeerID.id)
+        #expect(peerID.hexString == PeerIDTests.samplePeerID.id)
     }
 
-    func testFromMarshaledPublicKey() throws {
+    @Test func testFromMarshaledPublicKey() throws {
         //try Multihash(hexString: "f\(PeerIDTests.samplePeerID.marshaled)").value
         let marshaledPeerIDData = Data(hex: PeerIDTests.samplePeerID.marshaled)
-        let protoPeerID = try PeerIdProto(contiguousBytes: marshaledPeerIDData)
+        let protoPeerID = try PeerIdProto(serializedBytes: marshaledPeerIDData)
 
         print("ID: \(protoPeerID.id.asString(base: .base16))")
         print("pubKey: \(protoPeerID.pubKey.asString(base: .base64Pad))")
         print("privKey: \(protoPeerID.privKey.asString(base: .base64Pad))")
 
-        XCTAssertEqual(protoPeerID.id.asString(base: .base16), PeerIDTests.samplePeerID.id)
-        XCTAssertEqual(protoPeerID.pubKey.asString(base: .base64Pad), PeerIDTests.samplePeerID.pubKey)
-        XCTAssertEqual(protoPeerID.privKey.asString(base: .base64Pad), PeerIDTests.samplePeerID.privKey)
+        #expect(protoPeerID.id.asString(base: .base16) == PeerIDTests.samplePeerID.id)
+        #expect(protoPeerID.pubKey.asString(base: .base64Pad) == PeerIDTests.samplePeerID.pubKey)
+        #expect(protoPeerID.privKey.asString(base: .base64Pad) == PeerIDTests.samplePeerID.privKey)
 
-        guard protoPeerID.hasPubKey else { return XCTFail("No Pub Key Found") }
+        guard protoPeerID.hasPubKey else {
+            Issue.record("No Pub Key Found")
+            return
+        }
 
         let peerID = try PeerID(marshaledPublicKey: protoPeerID.pubKey)
 
@@ -332,24 +337,27 @@ final class PeerIDTests: XCTestCase {
         print("Multihashing Proto Pub Key")
         let id = try Multihash(raw: protoPeerID.pubKey, hashedWith: .sha2_256)
         print(id.hexString)
-        XCTAssertEqual(id.hexString, PeerIDTests.testIdHex)
+        #expect(id.hexString == PeerIDTests.testIdHex)
         print("--------------------------")
 
         let pid = peerID.id.asString(base: .base16)
         print(pid)
-        XCTAssertEqual(pid, PeerIDTests.testIdHex)
+        #expect(pid == PeerIDTests.testIdHex)
     }
 
-    func testFromMarshaledPrivateKey() throws {
+    @Test func testFromMarshaledPrivateKey() throws {
         //try Multihash(hexString: "f\(PeerIDTests.samplePeerID.marshaled)").value
         let marshaledPeerIDData = Data(hex: PeerIDTests.samplePeerID.marshaled)
-        let protoPeerID = try PeerIdProto(contiguousBytes: marshaledPeerIDData)
+        let protoPeerID = try PeerIdProto(serializedBytes: marshaledPeerIDData)
 
-        XCTAssertEqual(protoPeerID.id.asString(base: .base16), PeerIDTests.samplePeerID.id)
-        XCTAssertEqual(protoPeerID.pubKey.asString(base: .base64Pad), PeerIDTests.samplePeerID.pubKey)
-        XCTAssertEqual(protoPeerID.privKey.asString(base: .base64Pad), PeerIDTests.samplePeerID.privKey)
+        #expect(protoPeerID.id.asString(base: .base16) == PeerIDTests.samplePeerID.id)
+        #expect(protoPeerID.pubKey.asString(base: .base64Pad) == PeerIDTests.samplePeerID.pubKey)
+        #expect(protoPeerID.privKey.asString(base: .base64Pad) == PeerIDTests.samplePeerID.privKey)
 
-        guard protoPeerID.hasPrivKey else { return XCTFail("No Private Key Found") }
+        guard protoPeerID.hasPrivKey else {
+            Issue.record("No Private Key Found")
+            return
+        }
 
         let peerID = try PeerID(marshaledPrivateKey: protoPeerID.privKey)
 
@@ -358,19 +366,19 @@ final class PeerIDTests: XCTestCase {
         print("Multihashing Proto Pub Key")
         let id = try Multihash(raw: protoPeerID.pubKey, hashedWith: .sha2_256)
         print(id.hexString)
-        XCTAssertEqual(id.hexString, PeerIDTests.testIdHex)
+        #expect(id.hexString == PeerIDTests.testIdHex)
         print("--------------------------")
 
         let pid = peerID.id.asString(base: .base16)
         print(pid)
-        XCTAssertEqual(pid, PeerIDTests.testIdHex)
+        #expect(pid == PeerIDTests.testIdHex)
     }
 
     /// Decodes a base64 encoded string
     /// Unmarshales a PrivateKey
     /// Imports a SecKey from the raw data
     /// Extracts/derives a Public Key from the Private Key
-    func testFromMarshaledPrivateKey_GO() throws {
+    @Test func testFromMarshaledPrivateKey_GO() throws {
         let marshaledPrivateKey = try BaseEncoding.decode(PeerIDTests.goPeerID.privKey, as: .base64Pad)
 
         let peerID = try PeerID(marshaledPrivateKey: marshaledPrivateKey.data)
@@ -379,25 +387,26 @@ final class PeerIDTests: XCTestCase {
 
         let pid = peerID.id.asString(base: .base58btc)
         print(pid)
-        XCTAssertEqual(pid, PeerIDTests.goPeerID.id)
+        #expect(pid == PeerIDTests.goPeerID.id)
     }
 
     /// Marshaling Private RSA Keys
-    func testFromMarshaledPrivateKey_GO_2() throws {
+    @Test func testFromMarshaledPrivateKey_GO_2() throws {
         let peerID = try PeerID(marshaledPrivateKey: PeerIDTests.goPeerID.privKey, base: .base64Pad)
 
-        XCTAssertEqual(peerID.b58String, PeerIDTests.goPeerID.id)
+        #expect(peerID.b58String == PeerIDTests.goPeerID.id)
 
         guard let marshaledPrivKey = try peerID.keyPair?.privateKey?.marshal() else {
-            return XCTFail("Failed to import")
+            Issue.record("Failed to import")
+            return
         }
 
         print(marshaledPrivKey.asString(base: .base64Pad))
 
-        XCTAssertEqual(marshaledPrivKey.asString(base: .base64Pad), PeerIDTests.goPeerID.privKey)
+        #expect(marshaledPrivKey.asString(base: .base64Pad) == PeerIDTests.goPeerID.privKey)
     }
 
-    func testToJSONPublic() throws {
+    @Test func testToJSONPublic() throws {
         let peerID = try PeerID(marshaledPeerID: PeerIDTests.samplePeerID.marshaled, base: .base16)
 
         let publicJSON = try peerID.toJSON(includingPrivateKey: false)
@@ -410,14 +419,14 @@ final class PeerIDTests: XCTestCase {
 
         let pubID = try PeerID(fromJSON: publicJSON)
         // Ensure the ID matches the test fixture
-        XCTAssertEqual(pubID.hexString, PeerIDTests.samplePeerID.id)
+        #expect(pubID.hexString == PeerIDTests.samplePeerID.id)
         // Ensure our Public Key was instantiated
-        XCTAssertNotNil(pubID.keyPair?.publicKey)
+        #expect(pubID.keyPair?.publicKey != nil)
         // Ensure that the Private Key did not get exported
-        XCTAssertNil(pubID.keyPair?.privateKey)
+        #expect(pubID.keyPair?.privateKey == nil)
     }
 
-    func testToJSONFull() throws {
+    @Test func testToJSONFull() throws {
         let peerID = try PeerID(marshaledPeerID: PeerIDTests.samplePeerID.marshaled, base: .base16)
 
         let fullJSON = try peerID.toJSON(includingPrivateKey: true)
@@ -431,41 +440,37 @@ final class PeerIDTests: XCTestCase {
 
         let pubID = try PeerID(fromJSON: publicJSON)
         // Ensure the ID matches the test fixture
-        XCTAssertEqual(pubID.hexString, PeerIDTests.samplePeerID.id)
+        #expect(pubID.hexString == PeerIDTests.samplePeerID.id)
         // Ensure our Public Key was instantiated
-        XCTAssertNotNil(pubID.keyPair?.publicKey)
+        #expect(pubID.keyPair?.publicKey != nil)
         // Ensure that the Private Key did not get exported
-        XCTAssertNil(pubID.keyPair?.privateKey)
+        #expect(pubID.keyPair?.privateKey == nil)
 
         let fullID = try PeerID(fromJSON: fullJSON)
         // Ensure the ID matches the test fixture
-        XCTAssertEqual(fullID.hexString, PeerIDTests.samplePeerID.id)
+        #expect(fullID.hexString == PeerIDTests.samplePeerID.id)
         // Ensure that we derived the Public Key
-        XCTAssertNotNil(fullID.keyPair?.publicKey)
+        #expect(fullID.keyPair?.publicKey != nil)
         // Ensure that the Private Key was instantiated
-        XCTAssertNotNil(fullID.keyPair?.privateKey)
+        #expect(fullID.keyPair?.privateKey != nil)
 
         // PeerID <-> PeerID Equality
-        XCTAssertEqual(pubID, fullID)
-        // PeerID <-> PeerID Equality
-        XCTAssertTrue(pubID == fullID)
+        #expect(pubID == fullID)
         // [UInt8] <-> PeerID Equality
-        XCTAssertTrue(pubID.bytes == fullID)
+        #expect(pubID.id == fullID)
         // Data <-> PeerID Equality
-        XCTAssertTrue(Data(pubID.id) == fullID)
+        #expect(Data(pubID.id) == fullID)
 
-        XCTAssertEqual(pubID.bytes, fullID.bytes)
-        XCTAssertEqual(
-            pubID.keyPair?.publicKey.asString(base: .base64),
-            fullID.keyPair?.publicKey.asString(base: .base64)
+        #expect(pubID.id == fullID.id)
+        #expect(
+            pubID.keyPair?.publicKey.asString(base: .base64) == fullID.keyPair?.publicKey.asString(base: .base64)
         )
-        XCTAssertNotEqual(
-            pubID.keyPair?.privateKey?.asString(base: .base64),
-            fullID.keyPair?.privateKey?.asString(base: .base64)
+        #expect(
+            pubID.keyPair?.privateKey?.asString(base: .base64) != fullID.keyPair?.privateKey?.asString(base: .base64)
         )
     }
 
-    func testImportExportEncryptedPEM() throws {
+    @Test func testImportExportEncryptedPEM() throws {
         /// The encrypted version of an RSA 1024 Private Key
         ///
         /// Encrypted with
@@ -498,29 +503,29 @@ final class PeerIDTests: XCTestCase {
             """
 
         let peerID = try PeerID(pem: ENCRYPTED, password: "mypassword")
-        XCTAssertNotNil(peerID.keyPair)
-        XCTAssertNotNil(peerID.keyPair?.publicKey)
-        XCTAssertNotNil(peerID.keyPair?.privateKey)
-        XCTAssertEqual(peerID.type, .isPrivate)
-        XCTAssertEqual(peerID.keyPair?.keyType, .rsa)
+        #expect(peerID.keyPair != nil)
+        #expect(peerID.keyPair?.publicKey != nil)
+        #expect(peerID.keyPair?.privateKey != nil)
+        #expect(peerID.type == .isPrivate)
+        #expect(peerID.keyPair?.keyType == .rsa)
 
         /// Every time we export the encrypted PEM it should be unique (unless you manually set the IV using swift-libp2p-crypto)
         let export1 = try peerID.exportKeyPair(as: .privatePEMString(encryptedWithPassword: "mypassword"))
         let export2 = try peerID.exportKeyPair(as: .privatePEMString(encryptedWithPassword: "mypassword"))
 
-        XCTAssertNotEqual(export1, ENCRYPTED)
-        XCTAssertNotEqual(export2, ENCRYPTED)
-        XCTAssertNotEqual(export1, export2)
-        XCTAssertEqual(export1.count, export2.count)
-        XCTAssertEqual(export1.count, ENCRYPTED.count)
+        #expect(export1 != ENCRYPTED)
+        #expect(export2 != ENCRYPTED)
+        #expect(export1 != export2)
+        #expect(export1.count == export2.count)
+        #expect(export1.count == ENCRYPTED.count)
 
-        /// Ensure the wrong passwords throw errors
-        XCTAssertThrowsError(try PeerID(pem: ENCRYPTED, password: ""))
-        XCTAssertThrowsError(try PeerID(pem: ENCRYPTED, password: "MyPassword"))
-        XCTAssertThrowsError(try PeerID(pem: ENCRYPTED, password: nil))
+        /// Ensure we can't decrypt using the wrong passwords
+        #expect(throws: Error.self) { try PeerID(pem: ENCRYPTED, password: "") }
+        #expect(throws: Error.self) { try PeerID(pem: ENCRYPTED, password: "MyPassword") }
+        #expect(throws: Error.self) { try PeerID(pem: ENCRYPTED, password: nil) }
     }
 
-    func testImportExportED25519PeerID() throws {
+    @Test func testImportExportED25519PeerID() throws {
         let peerID = try PeerID(.Ed25519)
         let export = try peerID.exportKeyPair(as: .privatePEMString(encryptedWithPassword: "mypassword"))
 
@@ -528,18 +533,18 @@ final class PeerIDTests: XCTestCase {
 
         let imported = try PeerID(pem: export, password: "mypassword")
 
-        XCTAssertNotNil(imported.keyPair)
-        XCTAssertNotNil(imported.keyPair?.privateKey)
-        XCTAssertEqual(imported.keyPair?.privateKey?.rawRepresentation, peerID.keyPair?.privateKey?.rawRepresentation)
-        XCTAssertEqual(imported, peerID)
+        #expect(imported.keyPair != nil)
+        #expect(imported.keyPair?.privateKey != nil)
+        #expect(imported.keyPair?.privateKey?.rawRepresentation == peerID.keyPair?.privateKey?.rawRepresentation)
+        #expect(imported == peerID)
 
         /// Ensure the wrong passwords throw errors
-        XCTAssertThrowsError(try PeerID(pem: export, password: ""))
-        XCTAssertThrowsError(try PeerID(pem: export, password: "MyPassword"))
-        XCTAssertThrowsError(try PeerID(pem: export, password: nil))
+        #expect(throws: Error.self) { try PeerID(pem: export, password: "") }
+        #expect(throws: Error.self) { try PeerID(pem: export, password: "MyPassword") }
+        #expect(throws: Error.self) { try PeerID(pem: export, password: nil) }
     }
 
-    func testImportExportSecp256k1PeerID() throws {
+    @Test func testImportExportSecp256k1PeerID() throws {
         let peerID = try PeerID(.Secp256k1)
         let export = try peerID.exportKeyPair(as: .privatePEMString(encryptedWithPassword: "mypassword"))
 
@@ -547,14 +552,50 @@ final class PeerIDTests: XCTestCase {
 
         let imported = try PeerID(pem: export, password: "mypassword")
 
-        XCTAssertNotNil(imported.keyPair)
-        XCTAssertNotNil(imported.keyPair?.privateKey)
-        XCTAssertEqual(imported.keyPair?.privateKey?.rawRepresentation, peerID.keyPair?.privateKey?.rawRepresentation)
-        XCTAssertEqual(imported, peerID)
+        #expect(imported.keyPair != nil)
+        #expect(imported.keyPair?.privateKey != nil)
+        #expect(imported.keyPair?.privateKey?.rawRepresentation == peerID.keyPair?.privateKey?.rawRepresentation)
+        #expect(imported == peerID)
 
         /// Ensure the wrong passwords throw errors
-        XCTAssertThrowsError(try PeerID(pem: export, password: ""))
-        XCTAssertThrowsError(try PeerID(pem: export, password: "MyPassword"))
-        XCTAssertThrowsError(try PeerID(pem: export, password: nil))
+        #expect(throws: Error.self) { try PeerID(pem: export, password: "") }
+        #expect(throws: Error.self) { try PeerID(pem: export, password: "MyPassword") }
+        #expect(throws: Error.self) { try PeerID(pem: export, password: nil) }
+    }
+}
+
+struct TestHelper {
+    static var isLinux: Bool {
+        #if os(Linux)
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    static var canImportSecurity: Bool {
+        #if canImport(Security)
+        return true
+        #else
+        return false
+        #endif
+    }
+}
+
+extension Trait where Self == ConditionTrait {
+    /// This test only runs on Linux systems
+    public static var requiresLinux: Self {
+        enabled(
+            if: TestHelper.isLinux,
+            "This test is only available for linux systems"
+        )
+    }
+
+    /// A trait to determine if the Security module can be imported
+    public static var canImportSecurity: Self {
+        enabled(
+            if: TestHelper.canImportSecurity,
+            "This test is only available when we can import the Security module"
+        )
     }
 }

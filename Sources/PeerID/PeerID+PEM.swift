@@ -32,7 +32,7 @@ extension PeerID {
     /// - Parameters:
     ///   - pem: The PEM file in string form
     ///   - password: An optional password used to decrypt the PEM if it's encrypted
-    public convenience init(pem: String, password: String?) throws {
+    public init(pem: String, password: String?) throws {
         try self.init(keyPair: LibP2PCrypto.Keys.KeyPair(pem: pem, password: password))
     }
 
