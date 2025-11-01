@@ -35,7 +35,7 @@ extension PeerID {
     ///   - base: The base in which the data is encoded, unless the string provided is a valid Multibase string
     ///
     /// - Note: `base` can be left `nil` if the marshaledPeerID String is `Multibase` compliant (includes the multibase prefix) otherwise, you must specify the ecoded base of the string...
-    public convenience init(marshaledPeerID: String, base: BaseEncoding? = nil) throws {
+    public init(marshaledPeerID: String, base: BaseEncoding? = nil) throws {
         let marshaledData: Data
         if let base = base {
             marshaledData = try BaseEncoding.decode(marshaledPeerID, as: base).data
@@ -47,7 +47,7 @@ extension PeerID {
 
     /// Inits a `PeerID` from a marshaled `PeerID`
     /// - Parameter data: The marshalled PeerID (serialized protobuf)
-    public convenience init(marshaledPeerID data: Data) throws {
+    public init(marshaledPeerID data: Data) throws {
         // Attampt to instantiate a PeerIdProto with the raw, marshaled, data
         let protoPeerID = try PeerIdProto(serializedBytes: data)
 
@@ -73,22 +73,22 @@ extension PeerID {
     }
 
     /// Inits a `PeerID` from a marshaled public key string
-    public convenience init(marshaledPublicKey str: String, base: BaseEncoding) throws {
+    public init(marshaledPublicKey str: String, base: BaseEncoding) throws {
         try self.init(keyPair: LibP2PCrypto.Keys.KeyPair(marshaledPublicKey: str, base: base))
     }
 
     /// Inits a `PeerID` from a marshaled public key
-    public convenience init(marshaledPublicKey key: Data) throws {
+    public init(marshaledPublicKey key: Data) throws {
         try self.init(keyPair: LibP2PCrypto.Keys.KeyPair(marshaledPublicKey: key))
     }
 
     /// Inits a `PeerID` from a marshaled private key string
-    public convenience init(marshaledPrivateKey str: String, base: BaseEncoding) throws {
+    public init(marshaledPrivateKey str: String, base: BaseEncoding) throws {
         try self.init(keyPair: LibP2PCrypto.Keys.KeyPair(marshaledPrivateKey: str, base: base))
     }
 
     /// Inits a `PeerID` from a marshaled private key
-    public convenience init(marshaledPrivateKey data: Data) throws {
+    public init(marshaledPrivateKey data: Data) throws {
         try self.init(keyPair: LibP2PCrypto.Keys.KeyPair(marshaledPrivateKey: data))
     }
 
