@@ -120,7 +120,7 @@ extension PeerID {
         if includingPrivateKey, let privKey = self.keyPair?.privateKey {
             pid.privKey = try privKey.marshal()
         }
-        return try pid.serializedData().bytes
+        return try pid.serializedData().byteArray
     }
 
     /// Returns a protobuf encoded version of the id and private key
@@ -128,7 +128,7 @@ extension PeerID {
         guard let privKey = self.keyPair?.privateKey else {
             throw MarshallingError.noPrivateKeyAvailable
         }
-        return try privKey.marshal().bytes
+        return try privKey.marshal().byteArray
     }
 
     /// Returns a protobuf encoded version of the id and public key
@@ -136,6 +136,12 @@ extension PeerID {
         guard let pubKey = self.keyPair?.publicKey else {
             throw MarshallingError.noPublicKeyAvailable
         }
-        return try pubKey.marshal().bytes
+        return try pubKey.marshal().byteArray
+    }
+}
+
+extension Data {
+    var byteArray: [UInt8] {
+        Array(self)
     }
 }
