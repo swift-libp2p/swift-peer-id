@@ -49,7 +49,7 @@ extension PeerID {
     /// - Parameter data: The marshalled PeerID (serialized protobuf)
     public convenience init(marshaledPeerID data: Data) throws {
         // Attampt to instantiate a PeerIdProto with the raw, marshaled, data
-        let protoPeerID = try PeerIdProto(contiguousBytes: data)
+        let protoPeerID = try PeerIdProto(serializedBytes: data)
 
         //print(protoPeerID.id.asString(base: .base64))
         //print("Has PubKey: \(protoPeerID.hasPubKey)")
