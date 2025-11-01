@@ -15,7 +15,7 @@
 import CID
 import Foundation
 @preconcurrency import LibP2PCrypto
-@preconcurrency import Multihash
+import Multihash
 
 /// - Reference: https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#how-keys-are-encoded-and-messages-signed
 public struct PeerID: Sendable {
