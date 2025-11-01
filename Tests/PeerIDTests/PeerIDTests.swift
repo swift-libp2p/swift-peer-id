@@ -45,7 +45,7 @@ struct PeerIDTests {
     }
 
     static let testIdHex = samplePeerID.id
-    nonisolated(unsafe) static let testIdBytes = try! Multihash(hexString: testIdHex)  //mh.fromHexString(samplePeerID["id"])
+    nonisolated(unsafe) static let testIdBytes = try! Multihash(hexString: testIdHex)
     static let testIdB58String = testIdBytes.asString(base: .base58btc)
     nonisolated(unsafe) static let testIdCID = try! CID(version: .v1, codec: .libp2p_key, multihash: testIdBytes)
     static let testIdCIDString = try! testIdCID.toBaseEncodedString(.base32)
