@@ -44,7 +44,7 @@ let package = Package(
                 .product(name: "LibP2PCrypto", package: "swift-libp2p-crypto"),
                 .product(name: "Multihash", package: "swift-multihash"),
                 .product(name: "CID", package: "swift-cid"),
-                .product(name: "SwiftProtobuf", package: "SwiftProtobuf"),
+                .product(name: "SwiftProtobuf", package: "swift-protobuf"),
             ],
             resources: [
                 .copy("Protobufs/PeerIdProto.proto")
