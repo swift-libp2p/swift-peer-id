@@ -14,11 +14,11 @@
 
 import CID
 import Foundation
-import LibP2PCrypto
-import Multihash
+@preconcurrency import LibP2PCrypto
+@preconcurrency import Multihash
 
 /// - Reference: https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#how-keys-are-encoded-and-messages-signed
-public class PeerID {
+public struct PeerID: Sendable {
 
     /// General PeerID Errors
     public enum Errors: Error {
@@ -41,19 +41,19 @@ public class PeerID {
     public var bytes: [UInt8] { id }
 
     /// Returns the PeerID's id as a base58 string (multihash/CIDv0).
-    public lazy var b58String: String = {
+    public var b58String: String {
         self.id.asString(base: .base58btc)
-    }()
+    }
 
     /// Returns the PeerID's id as a hex string.
-    public lazy var hexString: String = {
+    public var hexString: String {
         self.id.asString(base: .base16)
-    }()
+    }
 
     /// A base32 encoded, version 1 CID, representing this PeerID
-    public lazy var cidString: String = {
+    public var cidString: String {
         (try? CID(version: .v1, codec: .libp2p_key, hash: self.id).toBaseEncodedString(.base32)) ?? ""
-    }()
+    }
 
     public enum PeerType {
         case idOnly
@@ -62,7 +62,7 @@ public class PeerID {
     }
 
     /// A simple way of checking a PeerID's type (id only, public key & id, or private key, public key and id)
-    public lazy var type: PeerType = {
+    public var type: PeerType {
         if self.keyPair?.privateKey != nil {
             return .isPrivate
         } else if self.keyPair?.publicKey != nil {
@@ -70,7 +70,7 @@ public class PeerID {
         } else {
             return .idOnly
         }
-    }()
+    }
 
     /// Generates a Public/Private `KeyPair` of the specified type and initializes a `PeerID` with it (defaults to RSA 2048 bits)
     public init(_ keyType: LibP2PCrypto.Keys.KeyPairType = .RSA(bits: .B2048)) throws {
@@ -102,7 +102,7 @@ public class PeerID {
 
     /// Inits a `PeerID` based solely on an ID value with no underlying `KeyPair`
     /// - Supports embedded ED25519 Public Keys
-    public convenience init(fromBytesID bytes: [UInt8]) throws {
+    public init(fromBytesID bytes: [UInt8]) throws {
         if let mh = try? Multihash(bytes), mh.algorithm == .identity {
             guard let digest = mh.digest else { throw Errors.invalidMultihashDigest }
             try self.init(marshaledPublicKey: Data(digest))
@@ -119,13 +119,13 @@ public class PeerID {
 
     /// Inits a `PeerID` from a v0 dag-pb or v1 libp2p-key CID complient string
     /// - Supports embedded ED25519 Public Keys
-    public convenience init(cid: String) throws {
+    public init(cid: String) throws {
         try self.init(cid: CID(cid))
     }
 
     /// Inits a `PeerID` from a v0 dag-pb or v1 libp2p-key CID
     /// - Supports embedded ED25519 Public Keys
-    public convenience init(cid: CID) throws {
+    public init(cid: CID) throws {
         guard cid.codec == .libp2p_key || cid.codec == .dag_pb else {
             throw Errors.invalidCIDCodec(expected: "'v0 dag-pb' or 'v1 libp2p-key'", received: "\(cid.codec)")
         }
