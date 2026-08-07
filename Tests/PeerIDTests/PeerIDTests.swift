@@ -548,7 +548,7 @@ struct PeerIDTests {
             try PeerID(marshaledPeerID: corrupted)
         }
 
-        // Sanity check: the same payload with the correct id succeeds
+        // Check: the same payload with the correct id succeeds
         proto.id = Data(peerID.id)
         let valid = try proto.serializedData()
         #expect(throws: Never.self) { try PeerID(marshaledPeerID: valid) }
