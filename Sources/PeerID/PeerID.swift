@@ -21,11 +21,20 @@ import Multihash
 public struct PeerID: Sendable {
 
     /// General PeerID Errors
-    public enum Errors: Error {
+    public enum Errors: Error, Equatable, Sendable, CustomStringConvertible {
         /// Unable to extract digest from Multihash
         case invalidMultihashDigest
         /// Invalid CID Codec for PeerID Instantiation
         case invalidCIDCodec(expected: String, received: String)
+
+        public var description: String {
+            switch self {
+            case .invalidMultihashDigest:
+                return "PeerID.Errors: unable to extract a digest from the multihash"
+            case .invalidCIDCodec(let expected, let received):
+                return "PeerID.Errors: invalid CID codec (expected \(expected), received \(received))"
+            }
+        }
     }
 
     /// The keys ID is the SHA-256 multihash of its public key
