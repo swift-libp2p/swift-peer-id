@@ -55,7 +55,7 @@ public struct PeerID: Sendable {
         (try? CID(version: .v1, codec: .libp2p_key, hash: self.id).toBaseEncodedString(.base32)) ?? ""
     }
 
-    public enum PeerType {
+    public enum PeerType: Sendable, Equatable {
         case idOnly
         case isPublic
         case isPrivate
