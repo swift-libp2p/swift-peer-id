@@ -18,12 +18,22 @@ import LibP2PCrypto
 /// - MARK: PeerID Signatures and Verification Methods
 extension PeerID {
 
-    /// PeerID PEM Related Errors
-    public enum SignatureError: Error {
+    /// PeerID Signature Related Errors
+    public enum SignatureError: Error, Equatable, Sendable, CustomStringConvertible {
         /// A public key is required for verifying signatures and this PeerID doesn't contain a public key.
         case noPublicKeyAvailable
         /// A private key is required for generating signatures and this PeerID doesn't contain a private key.
         case noPrivateKeyAvailable
+
+        public var description: String {
+            switch self {
+            case .noPublicKeyAvailable:
+                return "PeerID.SignatureError: a public key is required to verify signatures and this PeerID has none"
+            case .noPrivateKeyAvailable:
+                return
+                    "PeerID.SignatureError: a private key is required to generate signatures and this PeerID has none"
+            }
+        }
     }
 
     /// Signs data using this PeerID's private key. This signature can then be verified by a remote peer using this PeerID's public key

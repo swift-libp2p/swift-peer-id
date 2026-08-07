@@ -19,9 +19,20 @@ import Multihash
 /// - MARK: JSON Imports and Exports
 extension PeerID {
     /// PeerID JSON Related Errors
-    public enum JSONError: Error {
+    public enum JSONError: Error, Equatable, Sendable, CustomStringConvertible {
         /// Invalid JSON Payload
         case invalidJSON
+        /// The `id` in the JSON payload doesn't match the id derived from its key material
+        case idMismatch
+
+        public var description: String {
+            switch self {
+            case .invalidJSON:
+                return "PeerID.JSONError: invalid JSON payload"
+            case .idMismatch:
+                return "PeerID.JSONError: the provided id doesn't match the id derived from the key material"
+            }
+        }
     }
 
     /// An Internal PeerID struct to facilitate JSON Encoding and Decoding
@@ -51,15 +62,19 @@ extension PeerID {
             /// Only ID Present...
             try self.init(fromBytesID: Multihash(b58String: data.id).value)
         } else if data.privKey == nil, let pubKey = data.pubKey {
-            /// Only Public Key and ID Present, lets init via the public key and derive the ID
-            /// TODO: Compare the provided ID and the Derived ID and throw an error if they dont match...
+            /// Only Public Key and ID Present, init via the public key and derive the ID
             try self.init(marshaledPublicKey: pubKey, base: .base64)
         } else if let privKey = data.privKey {
-            /// Private Key was provided. Lets init via the private key and derive both the public key and the ID
-            /// TODO: Compare the provided publicKey and ID to the ones derived from the private key and throw an error if they don't match...
+            /// Private Key was provided. Init via the private key and derive both the public key and the ID
             try self.init(marshaledPrivateKey: privKey, base: .base64)
         } else {
             throw JSONError.invalidJSON
+        }
+
+        /// When the PeerID was derived from key material, ensure the provided `id` agrees with it
+        if data.pubKey != nil || data.privKey != nil {
+            let providedID = try Multihash(b58String: data.id).value
+            guard self.matchesID(providedID) else { throw JSONError.idMismatch }
         }
     }
 
@@ -94,6 +109,6 @@ extension PeerID {
     /// }
     /// ```
     public func toJSONString(includingPrivateKey: Bool = false) throws -> String? {
-        try String(data: self.toJSON(), encoding: .utf8)
+        try String(data: self.toJSON(includingPrivateKey: includingPrivateKey), encoding: .utf8)
     }
 }

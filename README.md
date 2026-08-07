@@ -21,9 +21,9 @@
 ## Overview
 Libp2p uses cryptographic key pairs to sign & verify messages and derive unique peer identities (Peer ID's). This library wraps a public / private key pair in a PeerID object that exposes certain functionality for use with Libp2p nodes.
 
-A Peer ID is the SHA-256 multihash of a public key.
+A Peer ID is the multihash of a peer's (protobuf-marshaled) public key. Keys whose marshaled form is ≤ 42 bytes (Ed25519, Secp256k1) are inlined verbatim using the `identity` multihash; larger keys (RSA) are condensed with SHA-256.
 
-The public key is a base64 encoded string of a protobuf containing an RSA DER buffer.
+The public key is a protobuf containing a key type and the key material (e.g. the DER buffer for an RSA key).
 
 #### Note:
 - For more information check out the [PeerID Spec](https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md)
@@ -116,7 +116,7 @@ PeerID.init(marshaledPrivateKey str:String, base:BaseEncoding) throws
 PeerID.init(marshaledPrivateKey data:Data) throws
 
 /// Inits a `PeerID` from a PEM String
-PeerID.init(pem: String, withPassword: String? = nil) throws
+PeerID.init(pem: String, password: String? = nil) throws
 
 /// Properties
 /// Returns the PeerID's id as a base58 string (multihash/CIDv0).
@@ -132,7 +132,7 @@ PeerID.cidString:String
 PeerID.type:PeerType
 
 /// Returns the id of this PeerID as bytes
-PeerID.bytes:[UInt8] 
+PeerID.id:[UInt8] 
 
 
 /// Methods
@@ -170,7 +170,7 @@ Let's make this code better together! 🤝
 
 ## License
 
-[MIT](LICENSE) © 2022 Breth Inc.
+[MIT](LICENSE) © 2026 Breth Inc.
 
 
 
