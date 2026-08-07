@@ -163,23 +163,39 @@ public struct PeerID: Sendable {
         self.cidString
     }
 
+    /// The canonical id used for equality and hashing.
+    ///
+    /// For an `.identity` multihash that inlines a marshaled public key (embedded Ed25519 /
+    /// Secp256k1 PeerIDs) this is the SHA-256 multihash of that key; for every other PeerID it is
+    /// the raw `id`. Normalizing to this form lets an embedded-key PeerID compare and hash equal to
+    /// its traditional (`Qm…`) SHA-256 equivalent.
+    internal var canonicalID: [UInt8] {
+        PeerID.canonicalID(for: self.multihash)
+    }
+
+    /// Computes the ``canonicalID`` for an arbitrary multihash. See ``canonicalID``.
+    internal static func canonicalID(for multihash: Multihash) -> [UInt8] {
+        guard multihash.algorithm == .identity,
+            let digest = multihash.digest,
+            let sha256 = try? Multihash(raw: digest, hashedWith: .sha2_256)
+        else {
+            return multihash.value
+        }
+        return sha256.value
+    }
+
     /// This method checks each PeerID's multihash for embedded public keys (via the use of the identity protocol) and converts them to the traditional SHA256 versions before comparing the underlying digests.
     /// - Allows for comparisons between Traditional PeerIDs and Embedded Public Key PeerIDs.
     internal func isEquivalent(to other: PeerID) -> Bool {
-        var lhs = self.multihash
-        var rhs = other.multihash
+        self.id == other.id || self.canonicalID == other.canonicalID
+    }
 
-        if lhs.algorithm == .identity {
-            guard let digest = lhs.digest else { return false }
-            guard let mh = try? Multihash(raw: digest, hashedWith: .sha2_256) else { return false }
-            lhs = mh
-        } else if rhs.algorithm == .identity {
-            guard let digest = rhs.digest else { return false }
-            guard let mh = try? Multihash(raw: digest, hashedWith: .sha2_256) else { return false }
-            rhs = mh
-        }
-
-        return lhs == rhs
+    /// Returns `true` if the provided id refers to the same peer as this PeerID, accounting for the
+    /// embedded (identity) vs. traditional (SHA-256) multihash representations of the same key.
+    internal func matchesID(_ other: [UInt8]) -> Bool {
+        if self.id == other { return true }
+        guard let otherMH = try? Multihash(other) else { return false }
+        return self.canonicalID == PeerID.canonicalID(for: otherMH)
     }
 
     /// Returns the PeerID as a SHA256 Base58 Encoding
