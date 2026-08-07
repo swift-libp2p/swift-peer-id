@@ -95,14 +95,6 @@ public struct PeerID: Sendable {
         self.keyPair = keyPair
     }
 
-    //init(publicKey:RawPublicKey) throws {
-    //    let kp = LibP2PCrypto.Keys.KeyPair(
-    //}
-
-    //init(privateKey:RawPrivateKey) throws {
-    //    let kp = LibP2PCrypto.Keys.KeyPair(
-    //}
-
     /// Inits a `PeerID` based solely on an ID value with no underlying `KeyPair`
     public init(fromHexID hex: String) throws {
         self.multihash = try Multihash(hexString: hex)
@@ -217,10 +209,6 @@ public struct PeerID: Sendable {
     public func toPrint() -> String {
         self.description
     }
-
-    private func toBase64Pad(_ buf: [UInt8]) -> String {
-        buf.asString(base: .base64Pad)
-    }
 }
 
 extension PeerID: CustomStringConvertible {
@@ -251,11 +239,5 @@ extension PeerID: CustomStringConvertible {
             skip = 8
         }
         return pid.dropFirst(skip)
-    }
-}
-
-extension Array where Element == UInt8 {
-    fileprivate var base64Pad: String {
-        self.asString(base: .base64Pad)
     }
 }
