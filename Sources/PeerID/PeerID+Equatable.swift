@@ -25,3 +25,11 @@ extension PeerID: Equatable {
         lhs.byteArray == rhs.id
     }
 }
+
+extension PeerID: Hashable {
+    /// Hashes on the ``canonicalID`` so that an embedded-key PeerID and its traditional SHA-256
+    /// equivalent (which compare equal via `==`) also produce the same hash value.
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(self.canonicalID)
+    }
+}
