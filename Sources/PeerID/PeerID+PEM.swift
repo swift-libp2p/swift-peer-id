@@ -19,20 +19,31 @@ import LibP2PCrypto
 extension PeerID {
 
     /// PeerID PEM Related Errors
-    public enum PEMError: Error {
+    public enum PEMError: Error, Equatable, Sendable, CustomStringConvertible {
         /// No Underlying Key Pair to Export
         case noKeypairToExport
         /// This PeerID doesn't have a Private Key to Export
         case noPrivateKeyAvailable
         /// Password shouldn't be empty
         case invalidPassword
+
+        public var description: String {
+            switch self {
+            case .noKeypairToExport:
+                return "PeerID.PEMError: no underlying key pair to export"
+            case .noPrivateKeyAvailable:
+                return "PeerID.PEMError: this PeerID doesn't have a private key to export"
+            case .invalidPassword:
+                return "PeerID.PEMError: password shouldn't be empty"
+            }
+        }
     }
 
     /// Initializes a PeerID using a PEM string
     /// - Parameters:
     ///   - pem: The PEM file in string form
     ///   - password: An optional password used to decrypt the PEM if it's encrypted
-    public init(pem: String, password: String?) throws {
+    public init(pem: String, password: String? = nil) throws {
         try self.init(keyPair: LibP2PCrypto.Keys.KeyPair(pem: pem, password: password))
     }
 
@@ -41,7 +52,11 @@ extension PeerID {
         /// Exports the PeerID's backing Public Key as a PEM string
         case publicPEMString
         /// Exports the PeerID's backing PrivateKey as a PEM string, encrypted with the password provided
-        case privatePEMString(encryptedWithPassword: String)
+        case privatePEMString(
+            encryptedWithPassword: String,
+            usingPBKDF: LibP2PCrypto.PEM.PBKDFAlgorithm? = nil,
+            andCipher: LibP2PCrypto.PEM.CipherAlgorithm? = nil
+        )
         /// Exports the PeerID's backing PrivateKey as an UNENCRYPTED PEM string
         /// - WARNING: Not Recommended
         /// - NOTE: Use the `.privatePEMString(encryptedWithPassword:)` method instead
@@ -63,11 +78,11 @@ extension PeerID {
                 throw PEMError.noPrivateKeyAvailable
             }
             return try keyPair.exportPrivatePEMString(withHeaderAndFooter: true)
-        case .privatePEMString(let password):
+        case .privatePEMString(let password, let pbkdf, let cipher):
             guard !password.isEmpty else {
                 throw PEMError.invalidPassword
             }
-            return try keyPair.exportEncryptedPrivatePEMString(withPassword: password)
+            return try keyPair.exportEncryptedPrivatePEMString(withPassword: password, usingPBKDF: pbkdf, andCipher: cipher)
         }
     }
 }
