@@ -82,7 +82,11 @@ extension PeerID {
             guard !password.isEmpty else {
                 throw PEMError.invalidPassword
             }
-            return try keyPair.exportEncryptedPrivatePEMString(withPassword: password, usingPBKDF: pbkdf, andCipher: cipher)
+            return try keyPair.exportEncryptedPrivatePEMString(
+                withPassword: password,
+                usingPBKDF: pbkdf,
+                andCipher: cipher
+            )
         }
     }
 }

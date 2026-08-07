@@ -30,7 +30,8 @@ extension PeerID {
             case .noPublicKeyAvailable:
                 return "PeerID.SignatureError: a public key is required to verify signatures and this PeerID has none"
             case .noPrivateKeyAvailable:
-                return "PeerID.SignatureError: a private key is required to generate signatures and this PeerID has none"
+                return
+                    "PeerID.SignatureError: a private key is required to generate signatures and this PeerID has none"
             }
         }
     }
