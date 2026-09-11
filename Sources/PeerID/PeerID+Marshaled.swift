@@ -54,9 +54,9 @@ extension PeerID {
     public init(marshaledPeerID: String, base: BaseEncoding? = nil) throws {
         let marshaledData: Data
         if let base = base {
-            marshaledData = try BaseEncoding.decode(marshaledPeerID, as: base).data
+            marshaledData = Data(try BaseEncoding.decode(marshaledPeerID, as: base))
         } else {
-            marshaledData = try BaseEncoding.decode(marshaledPeerID).data
+            marshaledData = Data(try BaseEncoding.decode(marshaledPeerID).bytes)
         }
         try self.init(marshaledPeerID: marshaledData)
     }

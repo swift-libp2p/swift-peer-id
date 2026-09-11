@@ -15,6 +15,7 @@
 import CID
 import Foundation
 import LibP2PCrypto
+import Multibase
 import Multihash
 
 /// - Reference: https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#how-keys-are-encoded-and-messages-signed
@@ -61,7 +62,7 @@ public struct PeerID: Sendable {
 
     /// A base32 encoded, version 1 CID, representing this PeerID
     public var cidString: String {
-        (try? CID(version: .v1, codec: .libp2p_key, hash: self.id).toBaseEncodedString(.base32)) ?? ""
+        (try? CID(version: .v1, codec: .libp2p_key, multihash: self.multihash).toBaseEncodedString(.base32)) ?? ""
     }
 
     public enum PeerType: Sendable, Equatable {
@@ -97,7 +98,7 @@ public struct PeerID: Sendable {
 
     /// Inits a `PeerID` based solely on an ID value with no underlying `KeyPair`
     public init(fromHexID hex: String) throws {
-        self.multihash = try Multihash(hexString: hex)
+        self.multihash = try Multihash(BaseEncoding.decode(hex, as: .base16))
         self.keyPair = nil
     }
 
@@ -105,8 +106,7 @@ public struct PeerID: Sendable {
     /// - Supports embedded ED25519 Public Keys
     public init(fromBytesID bytes: [UInt8]) throws {
         if let mh = try? Multihash(bytes), mh.algorithm == .identity {
-            guard let digest = mh.digest else { throw Errors.invalidMultihashDigest }
-            try self.init(marshaledPublicKey: Data(digest))
+            try self.init(marshaledPublicKey: Data(mh.digest))
         } else {
             try self.init(fromBytesIDInternal: bytes)
         }
@@ -121,7 +121,14 @@ public struct PeerID: Sendable {
     /// Inits a `PeerID` from a v0 dag-pb or v1 libp2p-key CID complient string
     /// - Supports embedded ED25519 Public Keys
     public init(cid: String) throws {
-        try self.init(cid: CID(cid))
+        if let parsed = try? CID(cid) {
+            try self.init(cid: parsed)
+        } else {
+            // A bare base58btc PeerID (`12D3KooW…`) carries no multibase prefix,
+            // so it isn't a valid CID string. Those are decoded as a plain base58btc
+            // multihash and wrapped in a v0 CID.
+            try self.init(cid: CID(v0WithMultihash: BaseEncoding.decode(cid, as: .base58btc)))
+        }
     }
 
     /// Inits a `PeerID` from a v0 dag-pb or v1 libp2p-key CID
@@ -132,8 +139,7 @@ public struct PeerID: Sendable {
         }
         if cid.multihash.algorithm == .identity {
             // Check to see if we can instantiate an ED25519 pubkey from the id
-            guard let digest = cid.multihash.digest else { throw Errors.invalidMultihashDigest }
-            try self.init(marshaledPublicKey: Data(digest))
+            try self.init(marshaledPublicKey: Data(cid.multihash.digest))
         } else {
             try self.init(fromCIDInternal: cid)
         }
@@ -167,13 +173,8 @@ public struct PeerID: Sendable {
 
     /// Computes the ``canonicalID`` for an arbitrary multihash. See ``canonicalID``.
     internal static func canonicalID(for multihash: Multihash) -> [UInt8] {
-        guard multihash.algorithm == .identity,
-            let digest = multihash.digest,
-            let sha256 = try? Multihash(raw: digest, hashedWith: .sha2_256)
-        else {
-            return multihash.value
-        }
-        return sha256.value
+        guard multihash.algorithm == .identity else { return multihash.value }
+        return Multihash(hashing: multihash.digest, with: .sha2_256).value
     }
 
     /// This method checks each PeerID's multihash for embedded public keys (via the use of the identity protocol) and converts them to the traditional SHA256 versions before comparing the underlying digests.
@@ -195,9 +196,8 @@ public struct PeerID: Sendable {
     /// - For Embedded Public Keys, this method will strip the public key from the ID and return the traditional SHA256 encoded value (Qm prefix style)
     public func traditionalB58String() throws -> String {
         if multihash.algorithm == .identity {
-            guard let digest = self.multihash.digest else { throw Errors.invalidMultihashDigest }
-            let mh = try Multihash(raw: digest, hashedWith: .sha2_256)
-            return mh.b58String
+            let mh = Multihash(hashing: self.multihash.digest, with: .sha2_256)
+            return mh.asString(base: .base58btc)
         } else {
             return self.b58String
         }
