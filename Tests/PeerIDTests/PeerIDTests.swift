@@ -45,9 +45,9 @@ struct PeerIDTests {
     }
 
     static let testIdHex = samplePeerID.id
-    nonisolated(unsafe) static let testIdBytes = try! Multihash(hexString: testIdHex)
+    static let testIdBytes = try! Multihash(BaseEncoding.decode(testIdHex, as: .base16))
     static let testIdB58String = testIdBytes.asString(base: .base58btc)
-    nonisolated(unsafe) static let testIdCID = try! CID(version: .v1, codec: .libp2p_key, multihash: testIdBytes)
+    static let testIdCID = try! CID(version: .v1, codec: .libp2p_key, multihash: testIdBytes)
     static let testIdCIDString = try! testIdCID.toBaseEncodedString(.base32)
 
     /// Generate a new PeerID with default params (RSA 2048)
@@ -222,7 +222,7 @@ struct PeerIDTests {
 
     @Test func testHexDecoding() throws {
         /// - FIXME: Decoding base16 (hex) is super slow using the Multibase library
-        let hex1 = try BaseEncoding.decode(PeerIDTests.samplePeerID.marshaled, as: .base16).data
+        let hex1 = Data(try BaseEncoding.decode(PeerIDTests.samplePeerID.marshaled, as: .base16))
         let hex2 = Data(hex: PeerIDTests.samplePeerID.marshaled)
 
         #expect(hex1 == hex2)
@@ -240,9 +240,9 @@ struct PeerIDTests {
 
         // Ensure that we can extract the ED25519 Public Key when it's embedded in the PeerID
         for id in ed25519EmbeddedB58IDs {
-            let embeddedKeyInBytes = try BaseEncoding.decode(id.0, as: .base58btc)
+            let embeddedKeyInBytes: [UInt8] = try BaseEncoding.decode(id.0, as: .base58btc)
 
-            let peerID = try PeerID(fromBytesID: embeddedKeyInBytes.data.byteArray)
+            let peerID = try PeerID(fromBytesID: embeddedKeyInBytes)
 
             #expect(peerID.b58String == id.0)
             #expect(peerID.type == .isPublic)
@@ -262,9 +262,9 @@ struct PeerIDTests {
 
         // Ensure we can instantiate a PeerID (id only) with the traditional b58 Multihash ED25519 bytes id
         for id in ed25519EmbeddedB58IDs {
-            let edBytes = try BaseEncoding.decode(id.1, as: .base58btc)
+            let edBytes: [UInt8] = try BaseEncoding.decode(id.1, as: .base58btc)
 
-            let peerID = try PeerID(fromBytesID: edBytes.data.byteArray)
+            let peerID = try PeerID(fromBytesID: edBytes)
 
             #expect(peerID.b58String == id.1)
             #expect(peerID.type == .idOnly)
@@ -358,9 +358,9 @@ struct PeerIDTests {
         print(peerID)
 
         print("Multihashing Proto Pub Key")
-        let id = try Multihash(raw: protoPeerID.pubKey, hashedWith: .sha2_256)
-        print(id.hexString)
-        #expect(id.hexString == PeerIDTests.testIdHex)
+        let id = Multihash(hashing: protoPeerID.pubKey, with: .sha2_256)
+        print(id.asString(base: .base16))
+        #expect(id.asString(base: .base16) == PeerIDTests.testIdHex)
         print("--------------------------")
 
         let pid = peerID.id.asString(base: .base16)
@@ -387,9 +387,9 @@ struct PeerIDTests {
         print(peerID)
 
         print("Multihashing Proto Pub Key")
-        let id = try Multihash(raw: protoPeerID.pubKey, hashedWith: .sha2_256)
-        print(id.hexString)
-        #expect(id.hexString == PeerIDTests.testIdHex)
+        let id = Multihash(hashing: protoPeerID.pubKey, with: .sha2_256)
+        print(id.asString(base: .base16))
+        #expect(id.asString(base: .base16) == PeerIDTests.testIdHex)
         print("--------------------------")
 
         let pid = peerID.id.asString(base: .base16)
@@ -402,9 +402,9 @@ struct PeerIDTests {
     /// Imports a SecKey from the raw data
     /// Extracts/derives a Public Key from the Private Key
     @Test func testFromMarshaledPrivateKey_GO() throws {
-        let marshaledPrivateKey = try BaseEncoding.decode(PeerIDTests.goPeerID.privKey, as: .base64Pad)
+        let marshaledPrivateKey = Data(try BaseEncoding.decode(PeerIDTests.goPeerID.privKey, as: .base64Pad))
 
-        let peerID = try PeerID(marshaledPrivateKey: marshaledPrivateKey.data)
+        let peerID = try PeerID(marshaledPrivateKey: marshaledPrivateKey)
 
         print(peerID)
 

@@ -14,6 +14,7 @@
 
 import Foundation
 import LibP2PCrypto
+import Multibase
 import Multihash
 
 /// - MARK: JSON Imports and Exports
@@ -60,7 +61,7 @@ extension PeerID {
 
         if data.privKey == nil && data.pubKey == nil {
             /// Only ID Present...
-            try self.init(fromBytesID: Multihash(b58String: data.id).value)
+            try self.init(fromBytesID: Multihash(BaseEncoding.decode(data.id, as: .base58btc)).value)
         } else if data.privKey == nil, let pubKey = data.pubKey {
             /// Only Public Key and ID Present, init via the public key and derive the ID
             try self.init(marshaledPublicKey: pubKey, base: .base64)
@@ -73,7 +74,7 @@ extension PeerID {
 
         /// When the PeerID was derived from key material, ensure the provided `id` agrees with it
         if data.pubKey != nil || data.privKey != nil {
-            let providedID = try Multihash(b58String: data.id).value
+            let providedID = try Multihash(BaseEncoding.decode(data.id, as: .base58btc)).value
             guard self.matchesID(providedID) else { throw JSONError.idMismatch }
         }
     }

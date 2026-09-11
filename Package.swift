@@ -30,9 +30,9 @@ let package = Package(
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        .package(url: "https://github.com/swift-libp2p/swift-libp2p-crypto.git", .upToNextMinor(from: "0.2.6")),
-        .package(url: "https://github.com/swift-libp2p/swift-multihash.git", .upToNextMinor(from: "0.2.1")),
-        .package(url: "https://github.com/swift-libp2p/swift-cid.git", .upToNextMinor(from: "0.2.0")),
+        .package(url: "https://github.com/swift-libp2p/swift-libp2p-crypto.git", .upToNextMinor(from: "0.2.7")),
+        .package(url: "https://github.com/swift-libp2p/swift-multihash.git", .upToNextMinor(from: "0.3.0")),
+        .package(url: "https://github.com/swift-libp2p/swift-cid.git", .upToNextMinor(from: "0.3.0")),
         .package(url: "https://github.com/apple/swift-protobuf.git", .upToNextMajor(from: "1.33.3")),
     ],
     targets: [
