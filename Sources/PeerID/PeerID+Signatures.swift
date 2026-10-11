@@ -20,8 +20,10 @@ extension PeerID {
 
     /// PeerID Signature Related Errors
     public enum SignatureError: Error, Equatable, Sendable, CustomStringConvertible {
+
         /// A public key is required for verifying signatures and this PeerID doesn't contain a public key.
         case noPublicKeyAvailable
+
         /// A private key is required for generating signatures and this PeerID doesn't contain a private key.
         case noPrivateKeyAvailable
 

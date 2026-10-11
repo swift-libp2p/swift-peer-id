@@ -21,10 +21,6 @@ import Testing
 
 @testable import PeerID
 
-/// - Note: Linux Users
-/// Make sure to compile the package for release before running these tests.
-/// ```swift test -c release -Xswiftc -enable-testing```
-/// Otherwise the RSA key generation can take an extremely long time...
 @Suite("PeerID Tests")
 struct PeerIDTests {
 
@@ -62,21 +58,16 @@ struct PeerIDTests {
         #expect(peerID.keyPair?.attributes()?.size == 2048)
     }
 
-    /// Creates a new PeerID with an underlying RSA 1024 bit key pair
-    @Test func testGeneratePeerID_RSA_1024() throws {
-        let peerID = try PeerID(.RSA(bits: .B1024))
-        print(peerID.debugDescription)
-        #expect(peerID.b58String.count == 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
-        #expect(peerID.keyPair != nil)
-        #expect(peerID.keyPair?.keyType == .rsa)
-        #expect(peerID.keyPair?.privateKey != nil)
-        #expect(peerID.keyPair?.publicKey != nil)
-        #expect(peerID.keyPair?.attributes()?.size == 1024)
+    /// We no longer support RSA keys less than 2048 bits, so this should fail
+    @Test func testGeneratePeerID_RSA_1024_Fails() throws {
+        #expect(throws: Error.self) {
+            let peerID = try PeerID(.rsa(bits: .custom(bits: 1024)))
+        }
     }
 
     /// Creates a new PeerID with an underlying RSA 2048 bit key pair
     @Test func testGeneratePeerID_RSA_2048() throws {
-        let peerID = try PeerID(.RSA(bits: .B2048))
+        let peerID = try PeerID(.rsa(bits: .b2048))
         print(peerID.debugDescription)
         #expect(peerID.b58String.count == 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
         #expect(peerID.keyPair != nil)
@@ -87,9 +78,8 @@ struct PeerIDTests {
     }
 
     /// Creates a new PeerID with an underlying RSA 3072 bit key pair
-    @Test(.canImportSecurity)
-    func testGeneratePeerID_RSA_3072() throws {
-        let peerID = try PeerID(.RSA(bits: .B3072))
+    @Test func testGeneratePeerID_RSA_3072() throws {
+        let peerID = try PeerID(.rsa(bits: .b3072))
         print(peerID.debugDescription)
         #expect(peerID.b58String.count == 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
         #expect(peerID.keyPair != nil)
@@ -100,9 +90,8 @@ struct PeerIDTests {
     }
 
     /// Creates a new PeerID with an underlying RSA 4096 bit key pair
-    @Test(.canImportSecurity)
-    func testGeneratePeerID_RSA_4096() throws {
-        let peerID = try PeerID(.RSA(bits: .B4096))
+    @Test func testGeneratePeerID_RSA_4096() throws {
+        let peerID = try PeerID(.rsa(bits: .b4096))
         print(peerID.debugDescription)
         #expect(peerID.b58String.count == 46)  //Example: QmYijSS4Tcz2i4LQbqJ7wkow1cy7sKqMbxChA5YJkav7VS
         #expect(peerID.keyPair != nil)
@@ -129,7 +118,7 @@ struct PeerIDTests {
     /// - NOTE: This behavior is governed by `CommonPublicKey.multihash()` in swift-libp2p-crypto's
     ///   size-based inlining rule
     @Test func testGenerate_Secp256k1_PeerID() throws {
-        let peerID = try PeerID(.Secp256k1)
+        let peerID = try PeerID(.secp256k1)
         print(peerID.debugDescription)
         #expect(peerID.multihash.algorithm == .identity)
         #expect(peerID.b58String.count == 53)
@@ -137,7 +126,7 @@ struct PeerIDTests {
         #expect(peerID.keyPair?.keyType == .secp256k1)
         #expect(peerID.keyPair?.privateKey != nil)
         #expect(peerID.keyPair?.publicKey != nil)
-        #expect(peerID.keyPair?.attributes()?.size == 64)
+        #expect(peerID.keyPair?.attributes()?.size == 256)
 
         // Because the public key is inlined, it can be recovered directly from the id
         let recovered = try PeerID(fromBytesID: peerID.id)
@@ -155,7 +144,7 @@ struct PeerIDTests {
     /// - NOTE: This behavior is governed by `CommonPublicKey.multihash()` in swift-libp2p-crypto's
     ///   size-based inlining rule
     @Test func testGenerate_Ed25519_PeerID() throws {
-        let peerID = try PeerID(.Ed25519)
+        let peerID = try PeerID(.ed25519)
         print(peerID.debugDescription)
         #expect(peerID.multihash.algorithm == .identity)
         #expect(peerID.b58String.count == 52)
@@ -163,7 +152,7 @@ struct PeerIDTests {
         #expect(peerID.keyPair?.keyType == .ed25519)
         #expect(peerID.keyPair?.privateKey != nil)
         #expect(peerID.keyPair?.publicKey != nil)
-        #expect(peerID.keyPair?.attributes()?.size == 32)
+        #expect(peerID.keyPair?.attributes()?.size == 256)
 
         // Because the public key is inlined, it can be recovered directly from the id
         let recovered = try PeerID(fromBytesID: peerID.id)
@@ -191,7 +180,7 @@ struct PeerIDTests {
     }
 
     @Test func testCIDRoundTripRSA() throws {
-        let peerID = try PeerID(.RSA(bits: .B1024))
+        let peerID = try PeerID(.rsa(bits: .b2048))
 
         let cid = peerID.cidString
 
@@ -201,7 +190,7 @@ struct PeerIDTests {
     }
 
     @Test func testCIDRoundTripEd25519() throws {
-        let peerID = try PeerID(.Ed25519)
+        let peerID = try PeerID(.ed25519)
 
         let cid = peerID.cidString
 
@@ -211,7 +200,7 @@ struct PeerIDTests {
     }
 
     @Test func testCIDRoundTripSecp256k1() throws {
-        let peerID = try PeerID(.Secp256k1)
+        let peerID = try PeerID(.secp256k1)
 
         let cid = peerID.cidString
 
@@ -298,7 +287,7 @@ struct PeerIDTests {
     }
 
     @Test func testEmbeddedEd25519PublicKeysPreference() throws {
-        let pid = try PeerID(.Ed25519)
+        let pid = try PeerID(.ed25519)
         // Ensure we default to embedding the pubkey in our PeerIDs b58 string
         #expect(pid.multihash.algorithm == .identity)
         #expect(pid.b58String.hasPrefix("12D3KooW"))
@@ -306,7 +295,7 @@ struct PeerIDTests {
 
     @Test func testRecoverPublicKeyFromPeerIDWithEmbeddedED25519Keys() throws {
         // RSA doesn't support embedding pub keys in their ID's
-        let rsa = try PeerID(.RSA(bits: .B1024))
+        let rsa = try PeerID(.rsa(bits: .b2048))
         let rsaID = rsa.id
 
         // So when we instantiate a PeerID from it's ID, it's public key should be nil
@@ -316,7 +305,7 @@ struct PeerIDTests {
         #expect(recoveredPeerID.keyPair?.publicKey == nil)
 
         // ED25519 supports embedding it's public key in it's ID
-        let ed25519 = try PeerID(.Ed25519)
+        let ed25519 = try PeerID(.ed25519)
         let edID = ed25519.id
 
         // So when we instantiate a PeerID from it's ID, it's public key should be populated
@@ -540,7 +529,7 @@ struct PeerIDTests {
         let peerID = try PeerID(marshaledPeerID: PeerIDTests.samplePeerID.marshaled, base: .base16)
 
         var proto = PeerIdProto()
-        proto.id = Data(try PeerID(.Ed25519).id)  // some other peer's id
+        proto.id = Data(try PeerID(.ed25519).id)  // some other peer's id
         proto.pubKey = try #require(try peerID.keyPair?.publicKey.marshal())
         let corrupted = try proto.serializedData()
 
@@ -565,7 +554,7 @@ struct PeerIDTests {
             let privKey: String?
         }
         let mismatched = JSONPayload(
-            id: try PeerID(.Ed25519).b58String,  // wrong id
+            id: try PeerID(.ed25519).b58String,  // wrong id
             pubKey: pubKey,
             privKey: nil
         )
@@ -576,77 +565,12 @@ struct PeerIDTests {
         }
     }
 
-    @Test func testImportExportEncryptedPEM() throws {
-        /// The encrypted version of an RSA 1024 Private Key
-        ///
-        /// Encrypted with
-        /// ```
-        /// openssl pkcs8
-        ///     -in foo.pem
-        ///     -topk8
-        ///     -v2 aes-128-cbc
-        ///     -passout pass:mypassword
-        /// ```
-        let ENCRYPTED = """
-            -----BEGIN ENCRYPTED PRIVATE KEY-----
-            MIICzzBJBgkqhkiG9w0BBQ0wPDAbBgkqhkiG9w0BBQwwDgQI49PtP+7yJmgCAggA
-            MB0GCWCGSAFlAwQBAgQQYz/oWtq4qhWPNrAQiO3i5wSCAoCjWvOSqAMdA4qDF8BB
-            aaqGRnZ/Lvewsrs4keppFogFnYpeVkzEmeleQLIYkO2mnNvsjhfh2Vk1LW/qNPIl
-            NvwjXyNbP1E6TlLmTNEAgIfyViHOCuk+17tkgAtK98huFTi0U+LbMcaxSnJ7CsNY
-            9JODko7fLXMpEaGy5qcuXWsMHG1iKcggYs0J1kmWSVw9ZQP7Uh9hs31zz60kFe+T
-            1I8EOjC06EcKY2HmOhzS+p378nWD3Lxi49FWkHslx1OtQwAXqMG5xWSo+kTWgmUx
-            fB3Olmv7opDcQ5OtOSxRjM/6SCtrtIlPRjIS7Uu4foW2BpFS+mkkvaJR0lMiEFjA
-            qMdLu3MZzT8U9lEDpd+ki+OjIC2bOXkv/OgHFmHjrTrGTVnK+HP5B0XkcaN0kmi5
-            ypd8/XB4zDqO/eSSTKnDe5cvw9Ruj5vt9cesUGjckTlVlZ7Sip2nqtngEAh0k7gc
-            p8p0LpNRyOM5edxNCsRLWj3Z9oskkbEFbL3INuVr6HZ5C1IpUHaxzdii1FBeLSqY
-            RYCC7iOgfqRILkBN2dsnWhdLLvcVpeQqSccnNCYSrXgr40T8BqZKLnuhHT7/iZaw
-            OiKp9MyygPf0wO5IFaSglpk02dohJpg/LYxFBZk+qJKPR9883NrtSPSzXxDogu2f
-            /tc8OCoH919cB8WAsU1cvKYMxsr9HTfoxS7itrJX9d7tE3J2Ky7fQrPWt247BXSE
-            FMUJ8BQpLL/2lNIxW9clLEuzr0RZKu3AhBU0V0o8KDucrsLPdbLvV9/J8+G8VJWB
-            DZjkXrHO2Oob0rOBtz0gnIF4TSwMWlI28OFWLwN3ByGeT0KcDN7SghLtDSyEQKNW
-            ZHiA
-            -----END ENCRYPTED PRIVATE KEY-----
-            """
-
-        let peerID = try PeerID(pem: ENCRYPTED, password: "mypassword")
-        #expect(peerID.keyPair != nil)
-        #expect(peerID.keyPair?.publicKey != nil)
-        #expect(peerID.keyPair?.privateKey != nil)
-        #expect(peerID.type == .isPrivate)
-        #expect(peerID.keyPair?.keyType == .rsa)
-
-        /// Every time we export the encrypted PEM it should be unique (unless you manually set the IV using swift-libp2p-crypto)
-        let export1 = try peerID.exportKeyPair(
-            as: .privatePEMString(
-                encryptedWithPassword: "mypassword",
-                usingPBKDF: .pbkdf2(salt: LibP2PCrypto.random8ByteSalt(), iterations: 2048)
-            )
-        )
-        let export2 = try peerID.exportKeyPair(
-            as: .privatePEMString(
-                encryptedWithPassword: "mypassword",
-                usingPBKDF: .pbkdf2(salt: LibP2PCrypto.random8ByteSalt(), iterations: 2048)
-            )
-        )
-
-        #expect(export1 != ENCRYPTED)
-        #expect(export2 != ENCRYPTED)
-        #expect(export1 != export2)
-        #expect(export1.count == export2.count)
-        #expect(export1.count == ENCRYPTED.count)
-
-        /// Ensure we can't decrypt using the wrong passwords
-        #expect(throws: Error.self) { try PeerID(pem: ENCRYPTED, password: "") }
-        #expect(throws: Error.self) { try PeerID(pem: ENCRYPTED, password: "MyPassword") }
-        #expect(throws: Error.self) { try PeerID(pem: ENCRYPTED, password: nil) }
-    }
-
     @Test func testImportExportED25519PeerID() throws {
-        let peerID = try PeerID(.Ed25519)
+        let peerID = try PeerID(.ed25519)
         let export = try peerID.exportKeyPair(
             as: .privatePEMString(
                 encryptedWithPassword: "mypassword",
-                usingPBKDF: .pbkdf2(salt: LibP2PCrypto.random16ByteSalt(), iterations: 2048)
+                usingPBKDF: .pbkdf2(salt: LibP2PCrypto.randomBytes(length: 16), iterations: 2048)
             )
         )
 
@@ -666,11 +590,11 @@ struct PeerIDTests {
     }
 
     @Test func testImportExportSecp256k1PeerID() throws {
-        let peerID = try PeerID(.Secp256k1)
+        let peerID = try PeerID(.secp256k1)
         let export = try peerID.exportKeyPair(
             as: .privatePEMString(
                 encryptedWithPassword: "mypassword",
-                usingPBKDF: .pbkdf2(salt: LibP2PCrypto.random16ByteSalt(), iterations: 2048)
+                usingPBKDF: .pbkdf2(salt: LibP2PCrypto.randomBytes(length: 16), iterations: 2048)
             )
         )
 
@@ -687,41 +611,5 @@ struct PeerIDTests {
         #expect(throws: Error.self) { try PeerID(pem: export, password: "") }
         #expect(throws: Error.self) { try PeerID(pem: export, password: "MyPassword") }
         #expect(throws: Error.self) { try PeerID(pem: export, password: nil) }
-    }
-}
-
-struct TestHelper {
-    static var isLinux: Bool {
-        #if os(Linux)
-        return true
-        #else
-        return false
-        #endif
-    }
-
-    static var canImportSecurity: Bool {
-        #if canImport(Security)
-        return true
-        #else
-        return false
-        #endif
-    }
-}
-
-extension Trait where Self == ConditionTrait {
-    /// This test only runs on Linux systems
-    public static var requiresLinux: Self {
-        enabled(
-            if: TestHelper.isLinux,
-            "This test is only available for linux systems"
-        )
-    }
-
-    /// A trait to determine if the Security module can be imported
-    public static var canImportSecurity: Self {
-        enabled(
-            if: TestHelper.canImportSecurity,
-            "This test is only available when we can import the Security module"
-        )
     }
 }

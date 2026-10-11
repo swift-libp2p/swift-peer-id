@@ -20,10 +20,13 @@ extension PeerID {
 
     /// PeerID PEM Related Errors
     public enum PEMError: Error, Equatable, Sendable, CustomStringConvertible {
+
         /// No Underlying Key Pair to Export
         case noKeypairToExport
+
         /// This PeerID doesn't have a Private Key to Export
         case noPrivateKeyAvailable
+
         /// Password shouldn't be empty
         case invalidPassword
 

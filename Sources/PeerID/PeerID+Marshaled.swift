@@ -2,7 +2,7 @@
 //
 // This source file is part of the swift-libp2p open source project
 //
-// Copyright (c) 2022-2025 swift-libp2p project authors
+// Copyright (c) 2022-2026 swift-libp2p project authors
 // Licensed under MIT
 //
 // See LICENSE for license information
@@ -21,12 +21,16 @@ extension PeerID {
 
     /// PeerID Marshalling (protobufs) Related Errors
     public enum MarshallingError: Error, Equatable, Sendable, CustomStringConvertible {
+
         /// Marshalled payload doesn't contain any valid keys
         case emptyMarshalledData
+
         /// This PeerID doesn't have a Private Key to Marshal
         case noPrivateKeyAvailable
+
         /// This PeerID doesn't have a Public Key to Marshal
         case noPublicKeyAvailable
+
         /// The id embedded in the marshaled payload doesn't match the id derived from its key material
         case idMismatch
 
@@ -120,7 +124,7 @@ extension PeerID {
         if includingPrivateKey, let privKey = keyPair.privateKey {
             pid.privKey = try privKey.marshal()
         }
-        return try pid.serializedData().byteArray
+        return try Array(pid.serializedData())
     }
 
     /// Returns the protobuf-marshaled private key (`KeyType` + raw key data, not wrapped in a `PeerIdProto`).
@@ -128,7 +132,7 @@ extension PeerID {
         guard let privKey = self.keyPair?.privateKey else {
             throw MarshallingError.noPrivateKeyAvailable
         }
-        return try privKey.marshal().byteArray
+        return try Array(privKey.marshal())
     }
 
     /// Returns the protobuf-marshaled public key (`KeyType` + raw key data, not wrapped in a `PeerIdProto`).
@@ -136,12 +140,6 @@ extension PeerID {
         guard let pubKey = self.keyPair?.publicKey else {
             throw MarshallingError.noPublicKeyAvailable
         }
-        return try pubKey.marshal().byteArray
-    }
-}
-
-extension Data {
-    var byteArray: [UInt8] {
-        Array(self)
+        return try Array(pubKey.marshal())
     }
 }

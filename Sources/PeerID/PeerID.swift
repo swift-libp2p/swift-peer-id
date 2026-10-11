@@ -23,8 +23,10 @@ public struct PeerID: Sendable {
 
     /// General PeerID Errors
     public enum Errors: Error, Equatable, Sendable, CustomStringConvertible {
+        
         /// Unable to extract digest from Multihash
         case invalidMultihashDigest
+        
         /// Invalid CID Codec for PeerID Instantiation
         case invalidCIDCodec(expected: String, received: String)
 
@@ -83,7 +85,7 @@ public struct PeerID: Sendable {
     }
 
     /// Generates a Public/Private `KeyPair` of the specified type and initializes a `PeerID` with it (defaults to RSA 2048 bits)
-    public init(_ keyType: LibP2PCrypto.Keys.KeyPairType = .RSA(bits: .B2048)) throws {
+    public init(_ keyType: LibP2PCrypto.Keys.KeyPairType = .rsa(bits: .b2048)) throws {
         let keyPair = try LibP2PCrypto.Keys.generateKeyPair(keyType)
 
         self.multihash = try keyPair.multihash()

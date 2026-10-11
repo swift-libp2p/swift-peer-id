@@ -19,10 +19,13 @@ import Multihash
 
 /// - MARK: JSON Imports and Exports
 extension PeerID {
+
     /// PeerID JSON Related Errors
     public enum JSONError: Error, Equatable, Sendable, CustomStringConvertible {
+
         /// Invalid JSON Payload
         case invalidJSON
+
         /// The `id` in the JSON payload doesn't match the id derived from its key material
         case idMismatch
 
@@ -38,10 +41,13 @@ extension PeerID {
 
     /// An Internal PeerID struct to facilitate JSON Encoding and Decoding
     internal struct PeerIDJSON: Codable {
+
         /// base58 encoded string
         let id: String
+
         /// base64 encoded publicKey protobuf
         let pubKey: String?
+
         /// base64 encoded privateKey protobuf
         let privKey: String?
     }
