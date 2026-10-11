@@ -2,7 +2,7 @@
 //
 // This source file is part of the swift-libp2p open source project
 //
-// Copyright (c) 2022-2025 swift-libp2p project authors
+// Copyright (c) 2022-2026 swift-libp2p project authors
 // Licensed under MIT
 //
 // See LICENSE for license information
@@ -12,7 +12,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Foundation
+public import Foundation
 import LibP2PCrypto
 
 /// - MARK: PeerID Signatures and Verification Methods
