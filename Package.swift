@@ -32,6 +32,8 @@ let package = Package(
         // Dependencies declare other packages that this package depends on.
         .package(url: "https://github.com/swift-libp2p/swift-libp2p-crypto.git", .upToNextMinor(from: "0.3.0")),
         .package(url: "https://github.com/swift-libp2p/swift-multihash.git", .upToNextMinor(from: "0.3.0")),
+        .package(url: "https://github.com/swift-libp2p/swift-multibase.git", .upToNextMinor(from: "0.3.0")),
+        .package(url: "https://github.com/swift-libp2p/swift-multicodec.git", .upToNextMinor(from: "0.3.0")),
         .package(url: "https://github.com/swift-libp2p/swift-cid.git", .upToNextMinor(from: "0.3.0")),
         .package(url: "https://github.com/apple/swift-protobuf.git", .upToNextMajor(from: "1.33.3")),
     ],
@@ -43,16 +45,35 @@ let package = Package(
             dependencies: [
                 .product(name: "LibP2PCrypto", package: "swift-libp2p-crypto"),
                 .product(name: "Multihash", package: "swift-multihash"),
+                .product(name: "Multibase", package: "swift-multibase"),
+                .product(name: "Multicodec", package: "swift-multicodec"),
                 .product(name: "CID", package: "swift-cid"),
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
             ],
             exclude: [
                 "Protobufs/PeerIdProto.proto"
-            ]
+            ],
+            swiftSettings: swiftSettings
         ),
         .testTarget(
             name: "PeerIDTests",
-            dependencies: ["PeerID"]
+            dependencies: [
+                "PeerID",
+                .product(name: "LibP2PCrypto", package: "swift-libp2p-crypto"),
+                .product(name: "Multihash", package: "swift-multihash"),
+                .product(name: "Multibase", package: "swift-multibase"),
+                .product(name: "Multicodec", package: "swift-multicodec"),
+                .product(name: "CID", package: "swift-cid"),
+                .product(name: "SwiftProtobuf", package: "swift-protobuf"),
+            ],
+            swiftSettings: swiftSettings
         ),
     ]
 )
+
+var swiftSettings: [SwiftSetting] {
+    [
+        .enableUpcomingFeature("MemberImportVisibility"),
+        .enableUpcomingFeature("ExistentialAny"),
+    ]
+}
