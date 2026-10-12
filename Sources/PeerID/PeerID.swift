@@ -85,7 +85,7 @@ public struct PeerID: Sendable {
         (try? CID(version: .v1, codec: .libp2p_key, multihash: self.multihash).toBaseEncodedString(.base32)) ?? ""
     }
 
-    public enum PeerType: Sendable, Equatable {
+    public enum PeerType: Sendable, Hashable {
         case idOnly
         case isPublic
         case isPrivate
@@ -102,76 +102,88 @@ public struct PeerID: Sendable {
         }
     }
 
+    /// The single initializer every other initializer collapses to
+    private init(multihash: Multihash, keyPair: LibP2PCrypto.Keys.KeyPair?) {
+        self.multihash = multihash
+        self.keyPair = keyPair
+        self.canonicalID = PeerID.canonicalID(for: multihash)
+    }
+
     /// Generates a Public/Private `KeyPair` of the specified type and initializes a `PeerID` with it (defaults to RSA 2048 bits)
     public init(_ keyType: LibP2PCrypto.Keys.KeyPairType = .rsa(bits: .b2048)) throws {
-        let keyPair = try LibP2PCrypto.Keys.generateKeyPair(keyType)
-
-        self.multihash = try keyPair.multihash()
-        self.keyPair = keyPair
+        try self.init(keyPair: LibP2PCrypto.Keys.generateKeyPair(keyType))
     }
 
     /// Initializes a `PeerID` using an existing Public/Private `KeyPair`
     public init(keyPair: LibP2PCrypto.Keys.KeyPair) throws {
-        self.multihash = try keyPair.multihash()
-        self.keyPair = keyPair
+        self.init(multihash: try keyPair.multihash(), keyPair: keyPair)
     }
 
-    /// Inits a `PeerID` based solely on an ID value with no underlying `KeyPair`
+    /// Inits a `PeerID` from a hex encoded multihash
+    /// - Supports embedded (identity multihash) Ed25519 & Secp256k1 Public Keys
     public init(fromHexID hex: String) throws {
-        self.multihash = try Multihash(BaseEncoding.decode(hex, as: .base16))
-        self.keyPair = nil
+        try self.init(fromBytesID: BaseEncoding.decode(hex, as: .base16))
     }
 
-    /// Inits a `PeerID` based solely on an ID value with no underlying `KeyPair`
-    /// - Supports embedded ED25519 Public Keys
+    /// Inits a `PeerID` from a binary multihash
+    /// - Supports embedded (identity multihash) Ed25519 & Secp256k1 Public Keys
+    /// - Throws: ``Errors/unsupportedMultihash(algorithm:)`` if the multihash isn't `sha2-256` or `identity`,
+    ///   ``Errors/invalidEmbeddedPublicKey`` if an `identity` multihash doesn't inline a valid public key
     public init(fromBytesID bytes: [UInt8]) throws {
-        if let mh = try? Multihash(bytes), mh.algorithm == .identity {
-            try self.init(marshaledPublicKey: Data(mh.digest))
-        } else {
-            try self.init(fromBytesIDInternal: bytes)
-        }
+        try self.init(validating: Multihash(bytes))
     }
 
-    /// Inits a `PeerID` based solely on an ID value with no underlying `KeyPair`
-    internal init(fromBytesIDInternal bytes: [UInt8]) throws {
-        self.multihash = try Multihash(bytes)
-        self.keyPair = nil
-    }
-
-    /// Inits a `PeerID` from a v0 dag-pb or v1 libp2p-key CID complient string
-    /// - Supports embedded ED25519 Public Keys
+    /// Inits a `PeerID` from a string
+    ///
+    /// Per the spec, strings beginning with `Qm` or `1` are treated as raw base58btc encoded multihashes,
+    /// everything else is parsed as a multibase encoded CIDv1 using the `libp2p-key` codec.
+    /// - Supports embedded (identity multihash) Ed25519 & Secp256k1 Public Keys
+    /// - Reference: https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#decoding
     public init(cid: String) throws {
-        if let parsed = try? CID(cid) {
-            try self.init(cid: parsed)
+        if cid.hasPrefix("Qm") || cid.hasPrefix("1") {
+            try self.init(fromBytesID: BaseEncoding.decode(cid, as: .base58btc))
         } else {
-            // A bare base58btc PeerID (`12D3KooW…`) carries no multibase prefix,
-            // so it isn't a valid CID string. Those are decoded as a plain base58btc
-            // multihash and wrapped in a v0 CID.
-            try self.init(cid: CID(v0WithMultihash: BaseEncoding.decode(cid, as: .base58btc)))
+            try self.init(cid: CID(cid))
         }
     }
 
     /// Inits a `PeerID` from a v0 dag-pb or v1 libp2p-key CID
-    /// - Supports embedded ED25519 Public Keys
+    /// - Supports embedded (identity multihash) Ed25519 & Secp256k1 Public Keys
     public init(cid: CID) throws {
-        guard cid.codec == .libp2p_key || cid.codec == .dag_pb else {
+        let isV0 = cid.version == .v0 && cid.codec == .dag_pb
+        guard isV0 || cid.codec == .libp2p_key else {
             throw Errors.invalidCIDCodec(expected: "'v0 dag-pb' or 'v1 libp2p-key'", received: "\(cid.codec)")
         }
-        if cid.multihash.algorithm == .identity {
-            // Check to see if we can instantiate an ED25519 pubkey from the id
-            try self.init(marshaledPublicKey: Data(cid.multihash.digest))
-        } else {
-            try self.init(fromCIDInternal: cid)
+        try self.init(validating: cid.multihash)
+    }
+
+    /// Validates the multihash per the spec (`sha2-256`, or an `identity` multihash inlining a public key)
+    private init(validating multihash: Multihash) throws {
+        switch multihash.algorithm {
+        case .sha2_256:
+            self.init(multihash: multihash, keyPair: nil)
+        case .identity:
+            try self.init(identityMultihash: multihash)
+        default:
+            throw Errors.unsupportedMultihash(algorithm: multihash.hashName ?? "0x\(String(multihash.code, radix: 16))")
         }
     }
 
-    /// Inits a `PeerID` based solely on a CID value with no underlying `KeyPair`
-    internal init(fromCIDInternal cid: CID) throws {
-        guard cid.codec == .libp2p_key || cid.codec == .dag_pb else {
-            throw Errors.invalidCIDCodec(expected: "'v0 dag-pb' or 'v1 libp2p-key'", received: "\(cid.codec)")
+    /// Recovers the public key inlined in an `identity` multihash.
+    ///
+    /// The inlined key must be no larger than ``maxInlineKeyLength`` and must re-derive the exact same multihash.
+    /// This rejects keys that should have been hashed (RSA / ECDSA) and non-canonical encodings (ex: an uncompressed
+    /// Secp256k1 key or a protobuf with unknown fields), which would otherwise produce a PeerID whose `id` differs
+    /// from the one it was decoded from.
+    private init(identityMultihash multihash: Multihash) throws {
+        guard multihash.digest.count <= PeerID.maxInlineKeyLength,
+            let keyPair = try? LibP2PCrypto.Keys.KeyPair(marshaledPublicKey: Data(multihash.digest)),
+            let derived = try? keyPair.multihash(),
+            derived == multihash
+        else {
+            throw Errors.invalidEmbeddedPublicKey
         }
-        self.multihash = cid.multihash
-        self.keyPair = nil
+        self.init(multihash: multihash, keyPair: keyPair)
     }
 
     /// Returns the PeerID's id as a self-describing CIDv1 in Base32 (RFC 0001)
@@ -179,16 +191,6 @@ public struct PeerID: Sendable {
     /// in default format from RFC 0001: https://github.com/libp2p/specs/pull/209
     public func toString() -> String {
         self.cidString
-    }
-
-    /// The canonical id used for equality and hashing.
-    ///
-    /// For an `.identity` multihash that inlines a marshaled public key (embedded Ed25519 /
-    /// Secp256k1 PeerIDs) this is the SHA-256 multihash of that key; for every other PeerID it is
-    /// the raw `id`. Normalizing to this form lets an embedded-key PeerID compare and hash equal to
-    /// its traditional (`Qm…`) SHA-256 equivalent.
-    internal var canonicalID: [UInt8] {
-        PeerID.canonicalID(for: self.multihash)
     }
 
     /// Computes the ``canonicalID`` for an arbitrary multihash. See ``canonicalID``.
