@@ -202,7 +202,7 @@ public struct PeerID: Sendable {
     /// This method checks each PeerID's multihash for embedded public keys (via the use of the identity protocol) and converts them to the traditional SHA256 versions before comparing the underlying digests.
     /// - Allows for comparisons between Traditional PeerIDs and Embedded Public Key PeerIDs.
     internal func isEquivalent(to other: PeerID) -> Bool {
-        self.id == other.id || self.canonicalID == other.canonicalID
+        self.canonicalID == other.canonicalID
     }
 
     /// Returns `true` if the provided id refers to the same peer as this PeerID, accounting for the
@@ -211,6 +211,13 @@ public struct PeerID: Sendable {
         if self.id == other { return true }
         guard let otherMH = try? Multihash(other) else { return false }
         return self.canonicalID == PeerID.canonicalID(for: otherMH)
+    }
+
+    /// Returns `true` if this PeerID was derived from the provided public key (go-libp2p's `MatchesPublicKey`)
+    /// - Note: Like `==`, an embedded (identity) PeerID matches the SHA-256 form of the same key and vice versa
+    public func matches(publicKey: any CommonPublicKey) -> Bool {
+        guard let mh = try? publicKey.multihash() else { return false }
+        return self.canonicalID == PeerID.canonicalID(for: mh)
     }
 
     /// Returns the PeerID as a SHA256 Base58 Encoding
