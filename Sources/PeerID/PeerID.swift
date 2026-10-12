@@ -237,7 +237,7 @@ public struct PeerID: Sendable {
 }
 
 extension PeerID: CustomStringConvertible, CustomDebugStringConvertible {
-    
+
     /// A short, loggable, representation of this PeerID matching go-libp2p's `ShortString`
     ///
     /// Example: <peer.ID 12*Ab3dEf>

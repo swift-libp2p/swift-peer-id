@@ -177,7 +177,7 @@ struct SpecComplianceTests {
         #expect(throws: PeerID.JSONError.publicKeyMismatch) {
             try PeerID(fromJSON: JSONEncoder().encode(mismatchedPayload))
         }
-        
+
         let properPayload = PeerID.PeerIDJSON(
             id: peerID.b58String,
             pubKey: try peerID.marshalPublicKey().asString(base: .base64),
