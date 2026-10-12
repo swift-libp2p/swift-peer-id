@@ -221,15 +221,11 @@ public struct PeerID: Sendable {
     }
 
     /// Returns the PeerID as a SHA256 Base58 Encoding
-    /// - This is equivalent to calling `.b58String` for all keys except embedded ED25519 Public Keys
+    /// - This is equivalent to calling `.b58String` for all keys except embedded Ed25519 / Secp256k1 Public Keys
     /// - For Embedded Public Keys, this method will strip the public key from the ID and return the traditional SHA256 encoded value (Qm prefix style)
+    /// - Note: This method never throws, it's marked as `throws` for source compatibility
     public func traditionalB58String() throws -> String {
-        if multihash.algorithm == .identity {
-            let mh = Multihash(hashing: self.multihash.digest, with: .sha2_256)
-            return mh.asString(base: .base58btc)
-        } else {
-            return self.b58String
-        }
+        PeerID.canonicalID(for: self.multihash).asString(base: .base58btc)
     }
 
     /// Returns the Peer ID as a printable string without the Qm prefix.
