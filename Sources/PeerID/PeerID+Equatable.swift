@@ -12,17 +12,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Foundation
+public import Foundation
 
+/// - Note: Equality accounts for the embedded (identity) vs. traditional (SHA-256) multihash representations of the same key,
+///   so `12D3KooW…` and its `Qm…` equivalent compare (and hash) equal.
 extension PeerID: Equatable {
     public static func == (lhs: PeerID, rhs: PeerID) -> Bool {
-        lhs.id == rhs.id || lhs.isEquivalent(to: rhs)
+        lhs.isEquivalent(to: rhs)
     }
     public static func == (lhs: [UInt8], rhs: PeerID) -> Bool {
-        lhs == rhs.id
+        rhs.matchesID(lhs)
     }
     public static func == (lhs: Data, rhs: PeerID) -> Bool {
-        Array(lhs) == rhs.id
+        rhs.matchesID(Array(lhs))
     }
 }
 
