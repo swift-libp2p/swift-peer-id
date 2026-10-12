@@ -228,41 +228,39 @@ public struct PeerID: Sendable {
         PeerID.canonicalID(for: self.multihash).asString(base: .base58btc)
     }
 
-    /// Returns the Peer ID as a printable string without the Qm prefix.
+    /// Returns the Peer ID as a short, printable, string
     ///
-    /// Example: <peer.ID xxxxxx>
+    /// Example: <peer.ID Qm*ZxXbWs>
     public func toPrint() -> String {
         self.description
     }
 }
 
-extension PeerID: CustomStringConvertible {
+extension PeerID: CustomStringConvertible, CustomDebugStringConvertible {
+    
+    /// A short, loggable, representation of this PeerID matching go-libp2p's `ShortString`
+    ///
+    /// Example: <peer.ID 12*Ab3dEf>
     public var description: String {
         let pid = self.b58String
-        return "<peer.ID \(dropPrefix(pid).prefix(6))>"
+        guard pid.count > 8 else { return pid }
+        return "<peer.ID \(pid.prefix(2))*\(pid.suffix(6))>"
     }
 
+    /// The last 6 characters of the PeerID's base58 string
+    ///
+    /// Example: Ab3dEf
     public var shortDescription: String {
-        let pid = self.b58String
-        return String(dropPrefix(pid).prefix(6))
+        String(self.b58String.suffix(6))
     }
 
+    /// - Note: The private key is never included, use the marshal / export methods if you need it
     public var debugDescription: String {
         """
             Peer ID
             id: \(id.asString(base: .base58btc))
             pubKey: \(keyPair?.publicKey.asString(base: .base64Pad) ?? "NIL")
-            privKey: \(keyPair?.privateKey?.asString(base: .base64Pad) ?? "NIL")
+            privKey: \(keyPair?.privateKey != nil ? "<redacted>" : "NIL")
         """
-    }
-
-    private func dropPrefix(_ pid: String) -> String.SubSequence {
-        var skip = 0
-        if pid.hasPrefix("Qm") {
-            skip = 2
-        } else if pid.hasPrefix("12D3KooW") {
-            skip = 8
-        }
-        return pid.dropFirst(skip)
     }
 }
