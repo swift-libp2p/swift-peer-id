@@ -2,7 +2,7 @@
 //
 // This source file is part of the swift-libp2p open source project
 //
-// Copyright (c) 2022-2025 swift-libp2p project authors
+// Copyright (c) 2022-2026 swift-libp2p project authors
 // Licensed under MIT
 //
 // See LICENSE for license information
@@ -12,23 +12,31 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Foundation
+public import Foundation
 import LibP2PCrypto
-import Multibase
+public import Multibase
+import SwiftProtobuf
 
 /// - MARK: Marshaled Imports and Exports
 extension PeerID {
 
     /// PeerID Marshalling (protobufs) Related Errors
     public enum MarshallingError: Error, Equatable, Sendable, CustomStringConvertible {
+
         /// Marshalled payload doesn't contain any valid keys
         case emptyMarshalledData
+
         /// This PeerID doesn't have a Private Key to Marshal
         case noPrivateKeyAvailable
+
         /// This PeerID doesn't have a Public Key to Marshal
         case noPublicKeyAvailable
+
         /// The id embedded in the marshaled payload doesn't match the id derived from its key material
         case idMismatch
+
+        /// The public key in the marshaled payload doesn't match the public key derived from the private key
+        case publicKeyMismatch
 
         public var description: String {
             switch self {
@@ -41,6 +49,9 @@ extension PeerID {
             case .idMismatch:
                 return
                     "PeerID.MarshallingError: the embedded id doesn't match the id derived from the key material"
+            case .publicKeyMismatch:
+                return
+                    "PeerID.MarshallingError: the embedded public key doesn't match the one derived from the private key"
             }
         }
     }
@@ -66,6 +77,8 @@ extension PeerID {
     ///
     /// - Note: If the marshaled payload carries a non-empty `id`, it's validated against the id
     ///   derived from the key material and a ``MarshallingError/idMismatch`` is thrown on mismatch.
+    ///   Likewise, when both a public and private key are present they must agree, otherwise a
+    ///   ``MarshallingError/publicKeyMismatch`` is thrown.
     public init(marshaledPeerID data: Data) throws {
         // Attempt to instantiate a PeerIdProto with the raw, marshaled, data
         let protoPeerID = try PeerIdProto(serializedBytes: data)
@@ -78,12 +91,16 @@ extension PeerID {
         // If we have a private key, instantiate the PeerID via the private key, otherwise the public key
         if protoPeerID.hasPrivKey {
             try self.init(marshaledPrivateKey: protoPeerID.privKey)
+            // Ensure the (optional) public key agrees with the one derived from the private key
+            if protoPeerID.hasPubKey, try self.marshalPublicKey() != Array(protoPeerID.pubKey) {
+                throw MarshallingError.publicKeyMismatch
+            }
         } else {
             try self.init(marshaledPublicKey: protoPeerID.pubKey)
         }
 
         // Validate the embedded id (when present) against the id derived from the key material
-        if !protoPeerID.id.isEmpty, !self.matchesID(protoPeerID.id.byteArray) {
+        if !protoPeerID.id.isEmpty, !self.matchesID(Array(protoPeerID.id)) {
             throw MarshallingError.idMismatch
         }
     }
@@ -120,7 +137,7 @@ extension PeerID {
         if includingPrivateKey, let privKey = keyPair.privateKey {
             pid.privKey = try privKey.marshal()
         }
-        return try pid.serializedData().byteArray
+        return try Array(pid.serializedData())
     }
 
     /// Returns the protobuf-marshaled private key (`KeyType` + raw key data, not wrapped in a `PeerIdProto`).
@@ -128,7 +145,7 @@ extension PeerID {
         guard let privKey = self.keyPair?.privateKey else {
             throw MarshallingError.noPrivateKeyAvailable
         }
-        return try privKey.marshal().byteArray
+        return try Array(privKey.marshal())
     }
 
     /// Returns the protobuf-marshaled public key (`KeyType` + raw key data, not wrapped in a `PeerIdProto`).
@@ -136,12 +153,6 @@ extension PeerID {
         guard let pubKey = self.keyPair?.publicKey else {
             throw MarshallingError.noPublicKeyAvailable
         }
-        return try pubKey.marshal().byteArray
-    }
-}
-
-extension Data {
-    var byteArray: [UInt8] {
-        Array(self)
+        return try Array(pubKey.marshal())
     }
 }

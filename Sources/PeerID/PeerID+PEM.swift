@@ -2,7 +2,7 @@
 //
 // This source file is part of the swift-libp2p open source project
 //
-// Copyright (c) 2022-2025 swift-libp2p project authors
+// Copyright (c) 2022-2026 swift-libp2p project authors
 // Licensed under MIT
 //
 // See LICENSE for license information
@@ -13,17 +13,20 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
-import LibP2PCrypto
+public import LibP2PCrypto
 
 /// - MARK: PEM Imports and Exports
 extension PeerID {
 
     /// PeerID PEM Related Errors
     public enum PEMError: Error, Equatable, Sendable, CustomStringConvertible {
+
         /// No Underlying Key Pair to Export
         case noKeypairToExport
+
         /// This PeerID doesn't have a Private Key to Export
         case noPrivateKeyAvailable
+
         /// Password shouldn't be empty
         case invalidPassword
 
@@ -48,7 +51,7 @@ extension PeerID {
     }
 
     /// PEM Export Type
-    public enum ExportType {
+    public enum ExportType: Sendable {
         /// Exports the PeerID's backing Public Key as a PEM string
         case publicPEMString
         /// Exports the PeerID's backing PrivateKey as a PEM string, encrypted with the password provided
@@ -60,7 +63,10 @@ extension PeerID {
         /// Exports the PeerID's backing PrivateKey as an UNENCRYPTED PEM string
         /// - WARNING: Not Recommended
         /// - NOTE: Use the `.privatePEMString(encryptedWithPassword:)` method instead
-        case unencrypredPrivatePEMString
+        case unencryptedPrivatePEMString
+
+        @available(*, deprecated, renamed: "unencryptedPrivatePEMString")
+        public static var unencrypredPrivatePEMString: ExportType { .unencryptedPrivatePEMString }
     }
 
     /// Exports the KeyPair as  PEM structured String. Private Keys can be encrypted with a password before export.
@@ -73,12 +79,15 @@ extension PeerID {
         switch exportType {
         case .publicPEMString:
             return try keyPair.publicKey.exportPublicKeyPEMString(withHeaderAndFooter: true)
-        case .unencrypredPrivatePEMString:
+        case .unencryptedPrivatePEMString:
             guard keyPair.privateKey != nil else {
                 throw PEMError.noPrivateKeyAvailable
             }
             return try keyPair.exportPrivatePEMString(withHeaderAndFooter: true)
         case .privatePEMString(let password, let pbkdf, let cipher):
+            guard keyPair.privateKey != nil else {
+                throw PEMError.noPrivateKeyAvailable
+            }
             guard !password.isEmpty else {
                 throw PEMError.invalidPassword
             }
