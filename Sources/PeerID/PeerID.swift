@@ -2,7 +2,7 @@
 //
 // This source file is part of the swift-libp2p open source project
 //
-// Copyright (c) 2022-2025 swift-libp2p project authors
+// Copyright (c) 2022-2026 swift-libp2p project authors
 // Licensed under MIT
 //
 // See LICENSE for license information
@@ -12,30 +12,36 @@
 //
 //===----------------------------------------------------------------------===//
 
-import CID
+public import CID
 import Foundation
-import LibP2PCrypto
+public import LibP2PCrypto
 import Multibase
-import Multihash
+import Multicodec
+public import Multihash
 
 /// - Reference: https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#how-keys-are-encoded-and-messages-signed
 public struct PeerID: Sendable {
 
     /// General PeerID Errors
     public enum Errors: Error, Equatable, Sendable, CustomStringConvertible {
-        
-        /// Unable to extract digest from Multihash
-        case invalidMultihashDigest
-        
+
         /// Invalid CID Codec for PeerID Instantiation
         case invalidCIDCodec(expected: String, received: String)
 
+        /// The multihash uses a hash function other than `sha2-256` or `identity`
+        case unsupportedMultihash(algorithm: String)
+
+        /// The `identity` multihash doesn't contain a valid, canonically encoded, inlinable public key
+        case invalidEmbeddedPublicKey
+
         public var description: String {
             switch self {
-            case .invalidMultihashDigest:
-                return "PeerID.Errors: unable to extract a digest from the multihash"
             case .invalidCIDCodec(let expected, let received):
                 return "PeerID.Errors: invalid CID codec (expected \(expected), received \(received))"
+            case .unsupportedMultihash(let algorithm):
+                return "PeerID.Errors: unsupported multihash '\(algorithm)' (expected 'sha2-256' or 'identity')"
+            case .invalidEmbeddedPublicKey:
+                return "PeerID.Errors: the identity multihash doesn't contain a valid, canonically encoded public key"
             }
         }
     }
