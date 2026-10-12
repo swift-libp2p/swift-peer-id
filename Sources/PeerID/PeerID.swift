@@ -46,10 +46,22 @@ public struct PeerID: Sendable {
         }
     }
 
-    /// The keys ID is the SHA-256 multihash of its public key
-    /// - Note: The public key is a protobuf encoding containing a type and the DER encoding of the PKCS SubjectPublicKeyInfo.
+    /// Marshaled public keys of this size or smaller are inlined in the PeerID using the `identity` multihash
+    /// - Reference: https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#peer-ids
+    internal static let maxInlineKeyLength = 42
+
+    /// The keys ID is the multihash of its marshaled public key
+    /// - Note: Marshaled keys of `maxInlineKeyLength` bytes or less are inlined using the `identity` multihash, larger keys are hashed using `sha2-256`
     public let multihash: Multihash
     public let keyPair: LibP2PCrypto.Keys.KeyPair?
+
+    /// The canonical id used for equality and hashing.
+    ///
+    /// For an `.identity` multihash that inlines a marshaled public key (embedded Ed25519 /
+    /// Secp256k1 PeerIDs) this is the SHA-256 multihash of that key; for every other PeerID it is
+    /// the raw `id`. Normalizing to this form lets an embedded-key PeerID compare and hash equal to
+    /// its traditional (`Qm…`) SHA-256 equivalent.
+    internal let canonicalID: [UInt8]
 
     /// Returns the ID of this PeerID as bytes
     public var id: [UInt8] { multihash.value }
