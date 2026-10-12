@@ -12,9 +12,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Foundation
+public import Foundation
 import LibP2PCrypto
-import Multibase
+public import Multibase
+import SwiftProtobuf
 
 /// - MARK: Marshaled Imports and Exports
 extension PeerID {
@@ -34,6 +35,9 @@ extension PeerID {
         /// The id embedded in the marshaled payload doesn't match the id derived from its key material
         case idMismatch
 
+        /// The public key in the marshaled payload doesn't match the public key derived from the private key
+        case publicKeyMismatch
+
         public var description: String {
             switch self {
             case .emptyMarshalledData:
@@ -45,6 +49,9 @@ extension PeerID {
             case .idMismatch:
                 return
                     "PeerID.MarshallingError: the embedded id doesn't match the id derived from the key material"
+            case .publicKeyMismatch:
+                return
+                    "PeerID.MarshallingError: the embedded public key doesn't match the one derived from the private key"
             }
         }
     }
@@ -70,6 +77,8 @@ extension PeerID {
     ///
     /// - Note: If the marshaled payload carries a non-empty `id`, it's validated against the id
     ///   derived from the key material and a ``MarshallingError/idMismatch`` is thrown on mismatch.
+    ///   Likewise, when both a public and private key are present they must agree, otherwise a
+    ///   ``MarshallingError/publicKeyMismatch`` is thrown.
     public init(marshaledPeerID data: Data) throws {
         // Attempt to instantiate a PeerIdProto with the raw, marshaled, data
         let protoPeerID = try PeerIdProto(serializedBytes: data)
@@ -82,12 +91,16 @@ extension PeerID {
         // If we have a private key, instantiate the PeerID via the private key, otherwise the public key
         if protoPeerID.hasPrivKey {
             try self.init(marshaledPrivateKey: protoPeerID.privKey)
+            // Ensure the (optional) public key agrees with the one derived from the private key
+            if protoPeerID.hasPubKey, try self.marshalPublicKey() != Array(protoPeerID.pubKey) {
+                throw MarshallingError.publicKeyMismatch
+            }
         } else {
             try self.init(marshaledPublicKey: protoPeerID.pubKey)
         }
 
         // Validate the embedded id (when present) against the id derived from the key material
-        if !protoPeerID.id.isEmpty, !self.matchesID(protoPeerID.id.byteArray) {
+        if !protoPeerID.id.isEmpty, !self.matchesID(Array(protoPeerID.id)) {
             throw MarshallingError.idMismatch
         }
     }
